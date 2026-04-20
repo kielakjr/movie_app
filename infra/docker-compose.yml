@@ -17,5 +17,14 @@ services:
     volumes:
       - movie_app_db:/var/lib/postgresql/data
 
+  embedding:
+    build:
+      context: ../embedding-service
+    container_name: ${EMBEDDING_CONTAINER_NAME:-movie_app_embedding}
+    restart: unless-stopped
+
+    ports:
+      - "${EMBEDDING_PORT:-8000}:8000"
+
 volumes:
   movie_app_db:
