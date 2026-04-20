@@ -5,6 +5,9 @@ spring:
   application:
     name: movie_app
 
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/movie_app}
     username: ${DB_USERNAME:movie_app}
@@ -22,6 +25,13 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+
+tmdb:
+  api-key: ${TMDB_API_KEY}
+  base-url: "https://api.themoviedb.org/3"
+  images:
+    poster-base-url: "https://image.tmdb.org/t/p/w500"
+    backdrop-base-url: "https://image.tmdb.org/t/p/w780"
 
 management:
   endpoints:
