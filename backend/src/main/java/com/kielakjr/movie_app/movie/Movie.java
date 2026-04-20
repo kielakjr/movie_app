@@ -1,4 +1,4 @@
-package com.kielakjr.movie_app.movies;
+package com.kielakjr.movie_app.movie;
 
 import jakarta.persistence.*;
 import lombok.*;

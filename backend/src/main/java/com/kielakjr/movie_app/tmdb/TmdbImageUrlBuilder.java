@@ -13,6 +13,10 @@ public class TmdbImageUrlBuilder {
             @Value("${tmdb.images.poster-base-url}") String posterBaseUrl,
             @Value("${tmdb.images.backdrop-base-url}") String backdropBaseUrl
     ) {
+        if (posterBaseUrl == null || posterBaseUrl.isBlank())
+            throw new IllegalStateException("tmdb.images.poster-base-url must be configured");
+        if (backdropBaseUrl == null || backdropBaseUrl.isBlank())
+            throw new IllegalStateException("tmdb.images.backdrop-base-url must be configured");
         this.posterBaseUrl = trimTrailingSlash(posterBaseUrl);
         this.backdropBaseUrl = trimTrailingSlash(backdropBaseUrl);
     }
