@@ -5,26 +5,24 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import com.kielakjr.movie_app.tmdb.dto.*;
 
-import jakarta.annotation.PostConstruct;
-
 @Component
 public class TmdbClient {
-    private RestClient restClient;
+    private final RestClient restClient;
 
-    @Value("${tmdb.base-url}")
-    private String TMDB_BASE_URL;
-
-    @Value("${tmdb.api-key}")
-    private String tmdbToken;
-
-    @PostConstruct
-    public void init() {
-        if (tmdbToken == null || tmdbToken.isBlank()) {
-            throw new IllegalStateException("TMDB API token must be provided");
+    public TmdbClient(
+        RestClient.Builder builder,
+        @Value("${tmdb.api-key}") String apiKey,
+        @Value("${tmdb.base-url}") String baseUrl
+    ) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalArgumentException("TMDB API key must be provided");
         }
-        this.restClient = RestClient.builder()
-                .baseUrl(TMDB_BASE_URL)
-                .defaultHeader("Authorization", "Bearer " + tmdbToken)
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalArgumentException("TMDB base URL must be provided");
+        }
+        this.restClient = builder
+                .baseUrl(baseUrl)
+                .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
     }
 
