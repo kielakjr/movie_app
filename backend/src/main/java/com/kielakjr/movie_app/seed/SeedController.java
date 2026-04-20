@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.http.ResponseEntity;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,7 +20,8 @@ public class SeedController {
     private final SeedService seedService;
 
     @PostMapping("/popular")
-    public int seedPopularMovies(@RequestParam(defaultValue = "5") @Valid @Min(1) @Max(500) int pages) {
-        return seedService.seedPopularMovies(pages);
+    public ResponseEntity<Void> seedPopularMovies(@RequestParam(defaultValue = "5") @Valid @Min(1) @Max(500) int pages) {
+        seedService.seedPopularMovies(pages);
+        return ResponseEntity.ok().build();
     }
 }

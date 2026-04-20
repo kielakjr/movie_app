@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.kielakjr.movie_app.movie.dto.MovieResponse;
+
 import java.util.List;
 import java.util.Set;
 
@@ -11,6 +13,10 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class MovieService {
     private final MovieRepository movieRepository;
+
+    public List<MovieResponse> getAllMovies() {
+        return movieRepository.findAll().stream().map(MovieService::toMovieResponse).collect(java.util.stream.Collectors.toList());
+    }
 
     @Transactional(readOnly = true)
     public Set<Long> findAllTmdbIds() {
@@ -39,5 +45,23 @@ public class MovieService {
             sb.append(embedding[i]);
         }
         return sb.append("]").toString();
+    }
+
+    private static MovieResponse toMovieResponse(Movie movie) {
+        return MovieResponse.builder()
+                .id(movie.getId())
+                .tmdbId(movie.getTmdbId())
+                .title(movie.getTitle())
+                .overview(movie.getOverview())
+                .releaseDate(movie.getReleaseDate() != null ? movie.getReleaseDate().toString() : null)
+                .originalLanguage(movie.getOriginalLanguage())
+                .adult(movie.isAdult())
+                .posterPath(movie.getPosterPath())
+                .backdropPath(movie.getBackdropPath())
+                .genres(movie.getGenres() != null ? movie.getGenres().toArray(new String[0]) : new String[0])
+                .popularity(movie.getPopularity())
+                .voteAverage(movie.getVoteAverage())
+                .voteCount(movie.getVoteCount())
+                .build();
     }
 }
