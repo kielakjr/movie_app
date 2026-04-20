@@ -1,28 +1,53 @@
 package com.kielakjr.movie_app.embedding;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Component
 public class EmbeddingClient {
-    private final RestClient restClient;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .build();
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final String embeddingUrl;
 
     public EmbeddingClient(@Value("${embedding.base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        this.embeddingUrl = baseUrl + "/embedding";
     }
 
-    public List<float[]> embed(List<String> texts) {
-        var response = restClient.post()
-                .uri("/embed")
-                .body(new EmbedRequest(texts))
-                .retrieve()
-                .body(EmbedResponse.class);
-        return response.embeddings().stream()
-                .map(EmbeddingClient::toFloatArray)
-                .toList();
+    public float[] embed(String text) {
+        try {
+            String body = mapper.writeValueAsString(Map.of("text", text));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(embeddingUrl))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                log.error("Embedding service error {}: {}", response.statusCode(), response.body());
+                return new float[0];
+            }
+
+            EmbedResponse parsed = mapper.readValue(response.body(), EmbedResponse.class);
+            return toFloatArray(parsed.embedding());
+        } catch (Exception e) {
+            log.error("Failed to get embedding: {}", e.getMessage(), e);
+            return new float[0];
+        }
     }
 
     private static float[] toFloatArray(List<Double> doubles) {
@@ -31,6 +56,5 @@ public class EmbeddingClient {
         return arr;
     }
 
-    record EmbedRequest(List<String> texts) {}
-    record EmbedResponse(List<List<Double>> embeddings) {}
+    record EmbedResponse(List<Double> embedding) {}
 }

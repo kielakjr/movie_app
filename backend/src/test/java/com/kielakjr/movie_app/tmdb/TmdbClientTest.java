@@ -16,15 +16,12 @@ class TmdbClientTest {
 
     @BeforeEach
     void setup() {
-        RestClient.Builder builder = RestClient.builder();
+        RestClient.Builder builder = RestClient.builder()
+                .baseUrl("https://api.themoviedb.org/3");
 
         mockServer = MockRestServiceServer.bindTo(builder).build();
 
-        client = new TmdbClient(
-                builder,
-                "test-token",
-                "https://api.themoviedb.org/3"
-        );
+        client = new TmdbClient(builder.build());
     }
 
     @Test

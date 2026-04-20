@@ -26,5 +26,9 @@ services:
     ports:
       - "${EMBEDDING_PORT:-8000}:8000"
 
+    volumes:
+      - embedding_model_cache:/root/.cache/huggingface
+
 volumes:
   movie_app_db:
+  embedding_model_cache:

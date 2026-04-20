@@ -55,13 +55,12 @@ public class SeedService {
 
         List<Movie> saved = movieService.saveAll(toSave);
 
-        List<String> texts = saved.stream()
-                .map(m -> m.getTitle() + ". " + (m.getOverview() != null ? m.getOverview() : ""))
-                .toList();
-        List<float[]> embeddings = embeddingClient.embed(texts);
-
-        for (int i = 0; i < saved.size(); i++) {
-            movieService.updateEmbedding(saved.get(i).getId(), embeddings.get(i));
+        for (Movie movie : saved) {
+            String text = movie.getTitle() + ". " + (movie.getOverview() != null ? movie.getOverview() : "");
+            float[] embedding = embeddingClient.embed(text);
+            if (embedding.length > 0) {
+                movieService.updateEmbedding(movie.getId(), embedding);
+            }
         }
 
         log.info("Seeded {} new movies", saved.size());
