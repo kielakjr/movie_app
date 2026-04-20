@@ -26,6 +26,9 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+embedding:
+  base-url: ${EMBEDDING_BASE_URL:http://localhost:8000}
+
 tmdb:
   api-key: ${TMDB_API_KEY}
   base-url: "https://api.themoviedb.org/3"
