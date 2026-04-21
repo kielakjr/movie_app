@@ -79,6 +79,45 @@ body {
   padding: 40px 24px;
 }
 
+/* Search */
+.search-bar {
+  margin-bottom: 32px;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 560px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(226, 182, 22, 0.15);
+}
+
+.similar-movies {
+  min-height: 300px;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
 /* Movie Grid */
 .movie-grid {
   display: grid;

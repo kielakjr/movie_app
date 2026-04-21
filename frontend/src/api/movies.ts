@@ -1,4 +1,4 @@
-import type { MoviesResponse } from '../types';
+import type { Movie, MoviesResponse } from '../types';
 
 const fetchMovies = async (page: number, size: number): Promise<MoviesResponse> => {
   const response = await fetch(`/api/movies?page=${page}&size=${size}`);
@@ -8,8 +8,8 @@ const fetchMovies = async (page: number, size: number): Promise<MoviesResponse> 
   return response.json();
 };
 
-const searchSimilar = async (query: string, limit: number): Promise<MoviesResponse> => {
-  const response = await fetch(`/api/movies/similar?query=${encodeURIComponent(query)}&limit=${limit}`);
+const searchSimilar = async (query: string, limit: number): Promise<Array<Movie>> => {
+  const response = await fetch(`/api/search/similar?query=${encodeURIComponent(query)}&limit=${limit}`);
   if (!response.ok) {
     throw new Error('Failed to search for similar movies');
   }

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchMovies } from '../api';
+import { fetchMovies, searchSimilar } from '../api';
 
 const useMovies = (page: number, size: number) => {
     return useQuery({
@@ -10,4 +10,14 @@ const useMovies = (page: number, size: number) => {
     });
 };
 
-export { useMovies };
+const useSearchSimilarMovies = (query: string) => {
+    return useQuery({
+        queryKey: ['similarMovies', query],
+        queryFn: () => searchSimilar(query, 10),
+        enabled: !!query,
+        placeholderData: [],
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
+export { useMovies, useSearchSimilarMovies };
