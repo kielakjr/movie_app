@@ -16,6 +16,7 @@ import java.util.Set;
 public class MovieService {
     private final MovieRepository movieRepository;
 
+    @Transactional(readOnly = true)
     public Page<MovieResponse> getAllMovies(Pageable pageable) {
         return movieRepository.findAll(pageable).map(MovieService::toMovieResponse);
     }

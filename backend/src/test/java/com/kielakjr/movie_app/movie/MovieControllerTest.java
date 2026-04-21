@@ -92,6 +92,18 @@ class MovieControllerTest {
             }
 
             @Test
+            void invalidPageParam_returnsBadRequest() throws Exception {
+                mockMvc.perform(get("/api/movies").param("page", "-1"))
+                        .andExpect(status().isBadRequest());
+            }
+
+            @Test
+            void invalidSizeParam_returnsBadRequest() throws Exception {
+                mockMvc.perform(get("/api/movies").param("size", "0"))
+                        .andExpect(status().isBadRequest());
+            }
+
+            @Test
             void customParams_forwardedToService() throws Exception {
                 when(movieService.getAllMovies(any())).thenReturn(new PageImpl<>(List.of()));
 

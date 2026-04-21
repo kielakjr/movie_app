@@ -9,6 +9,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -19,8 +22,8 @@ public class MovieController {
 
     @GetMapping
     public ResponseEntity<PagedModel<MovieResponse>> getAllMovies(
-        @RequestParam(value = "page", defaultValue = "0") int page,
-        @RequestParam(value = "size", defaultValue = "20") int size
+        @RequestParam(value = "page", defaultValue = "0") @Valid @Min(0) @Max(Integer.MAX_VALUE) int page,
+        @RequestParam(value = "size", defaultValue = "20") @Valid @Min(1) @Max(100) int size
     ) {
         var pageable = PageRequest.of(page, size);
         var moviePage = movieService.getAllMovies(pageable);

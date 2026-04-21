@@ -56,7 +56,7 @@ public class SeedService {
         List<Movie> saved = movieService.saveAll(toSave);
 
         for (Movie movie : saved) {
-            String text = movie.getTitle() + ". " + (movie.getOverview() != null ? movie.getOverview() : "");
+            String text = movie.getTitle() + ". " + String.join(", ", movie.getGenres()) + ". " + (movie.getOverview() != null ? movie.getOverview() : "");
             float[] embedding = embeddingClient.embed(text);
             if (embedding.length > 0) {
                 movieService.updateEmbedding(movie.getId(), embedding);

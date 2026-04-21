@@ -20,8 +20,8 @@ public class SeedController {
     private final SeedService seedService;
 
     @PostMapping("/popular")
-    public ResponseEntity<Void> seedPopularMovies(@RequestParam(defaultValue = "5") @Valid @Min(1) @Max(500) int pages) {
-        seedService.seedPopularMovies(pages);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> seedPopularMovies(@RequestParam(defaultValue = "5") @Valid @Min(1) @Max(500) int pages) {
+        int count = seedService.seedPopularMovies(pages);
+        return ResponseEntity.ok().body(count + " movies seeded");
     }
 }
