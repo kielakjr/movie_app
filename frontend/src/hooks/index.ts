@@ -1,1 +1,1 @@
-export * from './useMovies';
+export * from './movies';

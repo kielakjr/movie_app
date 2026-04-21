@@ -8,4 +8,12 @@ const fetchMovies = async (page: number, size: number): Promise<MoviesResponse> 
   return response.json();
 };
 
-export { fetchMovies };
+const searchSimilar = async (query: string, limit: number): Promise<MoviesResponse> => {
+  const response = await fetch(`/api/movies/similar?query=${encodeURIComponent(query)}&limit=${limit}`);
+  if (!response.ok) {
+    throw new Error('Failed to search for similar movies');
+  }
+  return response.json();
+}
+
+export { fetchMovies, searchSimilar };
