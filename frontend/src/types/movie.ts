@@ -2,19 +2,19 @@ import type { PaginationData } from './page';
 
 export interface MoviesResponse extends PaginationData<Movie> {}
 
-interface Movie {
+export interface Movie {
   id: number;
   tmdbId: number;
   title: string;
   overview: string;
-  releaseDate: string;
-  originalLanguage: string;
+  release_date: string;
+  original_language: string;
   adult: boolean;
-  posterPath: string;
-  backdropPath: string;
+  poster_path: string;
+  backdrop_path: string;
   genres: string[];
   popularity: number;
-  voteAverage: number;
-  voteCount: number;
+  vote_average: number;
+  vote_count: number;
 }
 
