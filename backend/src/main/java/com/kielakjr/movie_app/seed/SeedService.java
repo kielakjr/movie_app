@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,12 +56,16 @@ public class SeedService {
 
         List<Movie> saved = movieService.saveAll(toSave);
 
+        Map<Long, float[]> embeddings = new HashMap<>();
         for (Movie movie : saved) {
             String text = movie.getTitle() + ". " + String.join(", ", movie.getGenres()) + ". " + (movie.getOverview() != null ? movie.getOverview() : "");
             float[] embedding = embeddingClient.embed(text);
             if (embedding.length > 0) {
-                movieService.updateEmbedding(movie.getId(), embedding);
+                embeddings.put(movie.getId(), embedding);
             }
+        }
+        if (!embeddings.isEmpty()) {
+            movieService.batchUpdateEmbeddings(embeddings);
         }
 
         log.info("Seeded {} new movies", saved.size());

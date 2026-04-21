@@ -9,6 +9,7 @@ import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.embedding.EmbeddingClient;
 import org.mockito.InjectMocks;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class SearchServiceTest {
@@ -26,6 +27,7 @@ public class SearchServiceTest {
         @Test
         void callsEmbeddingClientWithQuery() {
             String query = "test query";
+            when(embeddingClient.embed(query)).thenReturn(new float[]{0.1f, 0.2f});
             searchService.searchSimilar(query, 5);
             verify(embeddingClient).embed(query);
         }

@@ -107,7 +107,7 @@ class SeedServiceTest {
 
             seedService.seedPopularMovies(1);
 
-            verify(movieService).updateEmbedding(eq(10L), any());
+            verify(movieService).batchUpdateEmbeddings(argThat(map -> map.containsKey(10L)));
         }
 
         @Test
@@ -121,7 +121,7 @@ class SeedServiceTest {
             when(embeddingClient.embed(any())).thenReturn(new float[0]);
 
             assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
-            verify(movieService, never()).updateEmbedding(anyLong(), any());
+            verify(movieService, never()).batchUpdateEmbeddings(any());
         }
     }
 

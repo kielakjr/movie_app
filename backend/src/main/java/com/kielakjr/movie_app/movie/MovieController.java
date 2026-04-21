@@ -22,7 +22,7 @@ public class MovieController {
 
     @GetMapping
     public ResponseEntity<PagedModel<MovieResponse>> getAllMovies(
-        @RequestParam(value = "page", defaultValue = "0") @Valid @Min(0) @Max(Integer.MAX_VALUE) int page,
+        @RequestParam(value = "page", defaultValue = "0") @Valid @Min(0) int page,
         @RequestParam(value = "size", defaultValue = "20") @Valid @Min(1) @Max(100) int size
     ) {
         var pageable = PageRequest.of(page, size);

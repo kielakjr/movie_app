@@ -15,19 +15,21 @@ import java.util.Map;
 @Slf4j
 @Component
 public class EmbeddingClient {
-    private final HttpClient httpClient = HttpClient.newBuilder()
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .build();
-    private final ObjectMapper mapper = new ObjectMapper();
+
+    private final ObjectMapper objectMapper;
     private final String embeddingUrl;
 
-    public EmbeddingClient(@Value("${embedding.base-url}") String baseUrl) {
+    public EmbeddingClient(ObjectMapper objectMapper, @Value("${embedding.base-url}") String baseUrl) {
+        this.objectMapper = objectMapper;
         this.embeddingUrl = baseUrl + "/embedding";
     }
 
     public float[] embed(String text) {
         try {
-            String body = mapper.writeValueAsString(Map.of("text", text));
+            String body = objectMapper.writeValueAsString(Map.of("text", text));
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(embeddingUrl))
@@ -35,14 +37,14 @@ public class EmbeddingClient {
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
                 log.error("Embedding service error {}: {}", response.statusCode(), response.body());
                 return new float[0];
             }
 
-            EmbedResponse parsed = mapper.readValue(response.body(), EmbedResponse.class);
+            EmbedResponse parsed = objectMapper.readValue(response.body(), EmbedResponse.class);
             return toFloatArray(parsed.embedding());
         } catch (Exception e) {
             log.error("Failed to get embedding: {}", e.getMessage(), e);

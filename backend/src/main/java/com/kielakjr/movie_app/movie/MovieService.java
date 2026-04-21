@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,12 @@ public class MovieService {
     @Transactional
     public void updateEmbedding(Long movieId, float[] embedding) {
         movieRepository.updateEmbedding(movieId, toVectorString(embedding));
+    }
+
+    @Transactional
+    public void batchUpdateEmbeddings(Map<Long, float[]> updates) {
+        updates.forEach((id, embedding) ->
+                movieRepository.updateEmbedding(id, toVectorString(embedding)));
     }
 
     @Transactional(readOnly = true)
