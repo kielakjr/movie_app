@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +38,10 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    public List<Movie> findSimilar(float[] queryEmbedding, int limit) {
-        return movieRepository.findSimilar(toVectorString(queryEmbedding), limit);
+    public List<MovieResponse> findSimilar(float[] queryEmbedding, int limit) {
+        return movieRepository.findSimilar(toVectorString(queryEmbedding), limit).stream()
+                .map(MovieService::toMovieResponse)
+                .collect(Collectors.toList());
     }
 
     static String toVectorString(float[] embedding) {
