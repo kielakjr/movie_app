@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.Set;
@@ -14,8 +16,8 @@ import java.util.Set;
 public class MovieService {
     private final MovieRepository movieRepository;
 
-    public List<MovieResponse> getAllMovies() {
-        return movieRepository.findAll().stream().map(MovieService::toMovieResponse).collect(java.util.stream.Collectors.toList());
+    public Page<MovieResponse> getAllMovies(Pageable pageable) {
+        return movieRepository.findAll(pageable).map(MovieService::toMovieResponse);
     }
 
     @Transactional(readOnly = true)
