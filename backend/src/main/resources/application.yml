@@ -39,9 +39,11 @@ spring:
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
 
-    session:
-      store-type: redis
-      timeout: 1800
+  session:
+    store-type: redis
+    timeout: 1800
+    redis:
+      save-mode: always
 
 embedding:
   base-url: ${EMBEDDING_BASE_URL:http://localhost:8000}

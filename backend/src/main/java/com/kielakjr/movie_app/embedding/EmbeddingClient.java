@@ -18,18 +18,17 @@ public class EmbeddingClient {
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .build();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private final ObjectMapper objectMapper;
     private final String embeddingUrl;
 
-    public EmbeddingClient(ObjectMapper objectMapper, @Value("${embedding.base-url}") String baseUrl) {
-        this.objectMapper = objectMapper;
+    public EmbeddingClient(@Value("${embedding.base-url}") String baseUrl) {
         this.embeddingUrl = baseUrl + "/embedding";
     }
 
     public float[] embed(String text) {
         try {
-            String body = objectMapper.writeValueAsString(Map.of("text", text));
+            String body = OBJECT_MAPPER.writeValueAsString(Map.of("text", text));
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(embeddingUrl))
@@ -44,7 +43,7 @@ public class EmbeddingClient {
                 return new float[0];
             }
 
-            EmbedResponse parsed = objectMapper.readValue(response.body(), EmbedResponse.class);
+            EmbedResponse parsed = OBJECT_MAPPER.readValue(response.body(), EmbedResponse.class);
             return toFloatArray(parsed.embedding());
         } catch (Exception e) {
             log.error("Failed to get embedding: {}", e.getMessage(), e);

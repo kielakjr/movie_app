@@ -1,6 +1,5 @@
 package com.kielakjr.movie_app.embedding;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +22,7 @@ class EmbeddingClientTest {
     void setUp() throws IOException {
         server = HttpServer.create(new InetSocketAddress(0), 0);
         server.start();
-        client = new EmbeddingClient(new ObjectMapper(), "http://localhost:" + server.getAddress().getPort());
+        client = new EmbeddingClient("http://localhost:" + server.getAddress().getPort());
     }
 
     @AfterEach
@@ -88,7 +87,7 @@ class EmbeddingClientTest {
 
         @Test
         void unreachableHost_returnsEmptyArray() {
-            EmbeddingClient badClient = new EmbeddingClient(new ObjectMapper(), "http://localhost:1");
+            EmbeddingClient badClient = new EmbeddingClient("http://localhost:1");
 
             assertThat(badClient.embed("some text")).isEmpty();
         }
