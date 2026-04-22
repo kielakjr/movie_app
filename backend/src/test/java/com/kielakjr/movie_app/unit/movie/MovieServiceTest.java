@@ -1,5 +1,8 @@
-package com.kielakjr.movie_app.movie;
+package com.kielakjr.movie_app.unit.movie;
 
+import com.kielakjr.movie_app.movie.Movie;
+import com.kielakjr.movie_app.movie.MovieRepository;
+import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

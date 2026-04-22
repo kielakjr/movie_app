@@ -1,7 +1,9 @@
-package com.kielakjr.movie_app.movie;
+package com.kielakjr.movie_app.unit.movie;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.kielakjr.movie_app.movie.MovieController;
+import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

@@ -61,7 +61,7 @@ public class MovieService {
         return Optional.of(toMovieResponse(movie));
     }
 
-    static String toVectorString(float[] embedding) {
+    public static String toVectorString(float[] embedding) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < embedding.length; i++) {
             if (i > 0) sb.append(",");

@@ -1,9 +1,10 @@
-package com.kielakjr.movie_app.swipe;
+package com.kielakjr.movie_app.unit.swipe;
 
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.session.SessionService;
 import com.kielakjr.movie_app.session.SwipeSessionState;
+import com.kielakjr.movie_app.swipe.SwipeService;
 import com.kielakjr.movie_app.swipe.dto.SwipeAction;
 import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
 import org.junit.jupiter.api.BeforeEach;

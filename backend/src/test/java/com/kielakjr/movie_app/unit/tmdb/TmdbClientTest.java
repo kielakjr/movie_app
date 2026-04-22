@@ -1,5 +1,6 @@
-package com.kielakjr.movie_app.tmdb;
+package com.kielakjr.movie_app.unit.tmdb;
 
+import com.kielakjr.movie_app.tmdb.TmdbClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

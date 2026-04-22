@@ -1,13 +1,15 @@
-package com.kielakjr.movie_app.search;
+package com.kielakjr.movie_app.unit.search;
 
+import com.kielakjr.movie_app.embedding.EmbeddingClient;
+import com.kielakjr.movie_app.movie.MovieService;
+import com.kielakjr.movie_app.search.SearchService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.kielakjr.movie_app.movie.MovieService;
-import com.kielakjr.movie_app.embedding.EmbeddingClient;
-import org.mockito.InjectMocks;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 

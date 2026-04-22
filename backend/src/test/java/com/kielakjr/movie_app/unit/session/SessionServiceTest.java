@@ -1,5 +1,6 @@
-package com.kielakjr.movie_app.session;
+package com.kielakjr.movie_app.unit.session;
 
+import com.kielakjr.movie_app.session.SessionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

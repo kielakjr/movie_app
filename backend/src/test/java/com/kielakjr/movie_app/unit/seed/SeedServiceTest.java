@@ -1,8 +1,9 @@
-package com.kielakjr.movie_app.seed;
+package com.kielakjr.movie_app.unit.seed;
 
 import com.kielakjr.movie_app.embedding.EmbeddingClient;
 import com.kielakjr.movie_app.movie.Movie;
 import com.kielakjr.movie_app.movie.MovieService;
+import com.kielakjr.movie_app.seed.SeedService;
 import com.kielakjr.movie_app.tmdb.TmdbClient;
 import com.kielakjr.movie_app.tmdb.TmdbImageUrlBuilder;
 import com.kielakjr.movie_app.tmdb.dto.TmdbGenreListResponse;

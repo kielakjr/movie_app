@@ -1,5 +1,6 @@
-package com.kielakjr.movie_app.embedding;
+package com.kielakjr.movie_app.unit.embedding;
 
+import com.kielakjr.movie_app.embedding.EmbeddingClient;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

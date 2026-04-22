@@ -1,5 +1,7 @@
-package com.kielakjr.movie_app.swipe;
+package com.kielakjr.movie_app.unit.swipe;
 
+import com.kielakjr.movie_app.swipe.SwipeController;
+import com.kielakjr.movie_app.swipe.SwipeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
