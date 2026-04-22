@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -112,5 +113,44 @@ class MovieServiceTest {
             when(movieRepository.findAllTmdbIds()).thenReturn(Set.of(1L, 2L, 3L));
             assertThat(movieService.findAllTmdbIds()).containsExactlyInAnyOrder(1L, 2L, 3L);
         }
+    }
+
+    @Nested
+    class GetNextMovie {
+
+        @Test
+        void returnsNextMovieFromRepository() {
+            Movie movie = Movie.builder()
+                    .id(42L).tmdbId(4242L).title("Title 42")
+                    .overview("Overview").releaseDate(LocalDate.of(2020, 1, 1))
+                    .originalLanguage("en").adult(false)
+                    .posterPath("/poster.jpg").backdropPath("/backdrop.jpg")
+                    .genres(List.of("Genre")).popularity(10.0)
+                    .voteAverage(5.0).voteCount(100)
+                    .build();
+
+            when(movieRepository.findAll(Pageable.unpaged()))
+                    .thenReturn(new PageImpl<>(List.of(movie)));
+
+            var result = movieService.getNextMovie(Set.of()).orElseThrow();
+            assertThat(result.id()).isEqualTo(42L);
+            assertThat(result.tmdbId()).isEqualTo(4242L);
+            assertThat(result.title()).isEqualTo("Title 42");
+        }
+
+        @Test
+        void seenMoviesAreFilteredOut() {
+            Movie movie1 = Movie.builder().id(1L).tmdbId(101L).title("Movie 1").build();
+            Movie movie2 = Movie.builder().id(2L).tmdbId(102L).title("Movie 2").build();
+
+            when(movieRepository.findAll(Pageable.unpaged()))
+                    .thenReturn(new PageImpl<>(List.of(movie1, movie2)));
+
+            var result = movieService.getNextMovie(Set.of(101L)).orElseThrow();
+            assertThat(result.id()).isEqualTo(2L);
+            assertThat(result.tmdbId()).isEqualTo(102L);
+            assertThat(result.title()).isEqualTo("Movie 2");
+        }
+
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,15 @@ public class MovieService {
         return movieRepository.findSimilar(toVectorString(queryEmbedding), limit).stream()
                 .map(MovieService::toMovieResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<MovieResponse> getNextMovie(Set<Long> seenTmdbIds) {
+        var movie = movieRepository.findAll(Pageable.unpaged()).stream()
+                .filter(m -> !seenTmdbIds.contains(m.getTmdbId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No more movies available"));
+        return Optional.of(toMovieResponse(movie));
     }
 
     static String toVectorString(float[] embedding) {

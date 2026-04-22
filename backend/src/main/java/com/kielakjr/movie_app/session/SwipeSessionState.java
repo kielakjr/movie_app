@@ -10,6 +10,7 @@ import java.util.Set;
 public class SwipeSessionState implements Serializable {
     private Set<Long> seenMovieIds = new HashSet<>();
     private Set<Long> dislikedMovieIds = new HashSet<>();
+    private Set<Long> likedMovieIds = new HashSet<>();
     private List<Float> userEmbedding;
     private int likesCount;
 }

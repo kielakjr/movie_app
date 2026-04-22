@@ -2,6 +2,7 @@ package com.kielakjr.movie_app.swipe;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -9,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+
+import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
 
 @RestController
@@ -24,5 +27,11 @@ public class SwipeController {
     ) {
         swipeService.swipe(request, httpSession);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/next")
+    public ResponseEntity<MovieResponse> getNext(HttpSession httpSession) {
+        var movie = swipeService.getNextFeed(httpSession);
+        return ResponseEntity.ok(movie);
     }
 }
