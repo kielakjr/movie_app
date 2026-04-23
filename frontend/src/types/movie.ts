@@ -1,6 +1,6 @@
 import type { PaginationData } from './page';
 
-export interface MoviesResponse extends PaginationData<Movie> {}
+export type MoviesResponse = PaginationData<Movie>;
 
 export interface Movie {
   id: number;
