@@ -11,7 +11,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,21 +63,19 @@ class SearchIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void similar_throwsWhenEmbeddingClientReturnsEmpty() {
+    void similar_returns400_whenEmbeddingClientReturnsEmpty() throws Exception {
         when(embeddingClient.embed(anyString())).thenReturn(new float[0]);
 
-        assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/api/search/similar").param("query", "action")).andReturn()
-        );
+        mockMvc.perform(get("/api/search/similar").param("query", "action"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void similar_throwsWhenEmbeddingClientReturnsNull() {
+    void similar_returns400_whenEmbeddingClientReturnsNull() throws Exception {
         when(embeddingClient.embed(anyString())).thenReturn(null);
 
-        assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/api/search/similar").param("query", "action")).andReturn()
-        );
+        mockMvc.perform(get("/api/search/similar").param("query", "action"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

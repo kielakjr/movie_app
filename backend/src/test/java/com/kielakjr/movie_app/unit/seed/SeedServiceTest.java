@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -47,22 +46,6 @@ class SeedServiceTest {
 
     private Movie savedMovie(long id, long tmdbId, String title) {
         return Movie.builder().id(id).tmdbId(tmdbId).title(title).adult(false).genres(List.of()).build();
-    }
-
-    @Nested
-    class Validation {
-
-        @Test
-        void pagesBelowOne_throwsIllegalArgument() {
-            assertThatThrownBy(() -> seedService.seedPopularMovies(0))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        void pagesAbove500_throwsIllegalArgument() {
-            assertThatThrownBy(() -> seedService.seedPopularMovies(501))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
     }
 
     @Nested

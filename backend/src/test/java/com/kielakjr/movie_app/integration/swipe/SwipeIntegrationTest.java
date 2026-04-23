@@ -9,7 +9,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -44,9 +43,8 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
     void getUnseen_throwsWhenNoDatabaseMovies() throws Exception {
         jdbcTemplate.execute("DELETE FROM movies");
 
-        assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/api/swipe/next").session(session)).andReturn()
-        );
+        mockMvc.perform(get("/api/swipe/next").session(session))
+                .andExpect(status().isInternalServerError());
     }
 
     @Test
@@ -59,9 +57,8 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
                     .andExpect(status().isOk());
         }
 
-        assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/api/swipe/next").session(session)).andReturn()
-        );
+        mockMvc.perform(get("/api/swipe/next").session(session))
+                .andExpect(status().isInternalServerError());
     }
 
     @Test
@@ -112,9 +109,8 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
             swipe(sessionA, tmdbId, "SKIP");
         }
 
-        assertThrows(Exception.class, () ->
-                mockMvc.perform(get("/api/swipe/next").session(sessionA)).andReturn()
-        );
+        mockMvc.perform(get("/api/swipe/next").session(sessionA))
+                .andExpect(status().isInternalServerError());
 
         mockMvc.perform(get("/api/swipe/next").session(sessionB))
                 .andExpect(status().isOk())

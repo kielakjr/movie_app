@@ -31,8 +31,6 @@ public class SeedService {
     private final EmbeddingClient embeddingClient;
 
     public int seedPopularMovies(int pages) {
-        if (pages < 1 || pages > 500)
-            throw new IllegalArgumentException("pages must be between 1 and 500");
 
         Map<Integer, String> genreMap = tmdbClient.getGenres().genres().stream()
                 .collect(Collectors.toMap(TmdbGenre::id, TmdbGenre::name));
