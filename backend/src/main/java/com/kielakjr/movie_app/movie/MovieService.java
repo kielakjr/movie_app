@@ -54,8 +54,8 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<MovieResponse> getUnseenMovie(Set<Long> seenTmdbIds) {
-        return movieRepository.findUnseen(seenTmdbIds, PageRequest.of(0, 1))
+    public Optional<MovieResponse> getUnseenMovie(Set<Long> seenIds) {
+        return movieRepository.findUnseen(seenIds, PageRequest.of(0, 1))
                 .stream().findFirst().map(MovieService::toMovieResponse);
     }
 

@@ -3,6 +3,7 @@ package com.kielakjr.movie_app.integration.swipe;
 import com.kielakjr.movie_app.integration.base.BaseIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -49,12 +50,8 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void getUnseen_throwsWhenAllMoviesHaveBeenSwiped() throws Exception {
-        for (long tmdbId : new long[]{101L, 102L, 103L}) {
-            mockMvc.perform(post("/api/swipe")
-                            .session(session)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"movie_id\": %d, \"action\": \"SKIP\"}".formatted(tmdbId)))
-                    .andExpect(status().isOk());
+        for (long id : allMovieIds()) {
+            swipe(session, id, "SKIP");
         }
 
         mockMvc.perform(get("/api/swipe/next").session(session))
@@ -63,39 +60,39 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void swipeLike_filtersMovieFromNextFeed() throws Exception {
-        long firstTmdbId = getTmdbIdFromNextFeed(session);
+        long firstId = getIdFromNextFeed(session);
 
-        swipe(session, firstTmdbId, "LIKE");
+        swipe(session, firstId, "LIKE");
 
-        long secondTmdbId = getTmdbIdFromNextFeed(session);
+        long secondId = getIdFromNextFeed(session);
 
-        if (firstTmdbId == secondTmdbId) {
+        if (firstId == secondId) {
             throw new AssertionError("LIKE did not filter movie from next feed");
         }
     }
 
     @Test
     void swipeDislike_filtersMovieFromNextFeed() throws Exception {
-        long firstTmdbId = getTmdbIdFromNextFeed(session);
+        long firstId = getIdFromNextFeed(session);
 
-        swipe(session, firstTmdbId, "DISLIKE");
+        swipe(session, firstId, "DISLIKE");
 
-        long secondTmdbId = getTmdbIdFromNextFeed(session);
+        long secondId = getIdFromNextFeed(session);
 
-        if (firstTmdbId == secondTmdbId) {
+        if (firstId == secondId) {
             throw new AssertionError("DISLIKE did not filter movie from next feed");
         }
     }
 
     @Test
     void swipeSkip_filtersMovieFromNextFeed() throws Exception {
-        long firstTmdbId = getTmdbIdFromNextFeed(session);
+        long firstId = getIdFromNextFeed(session);
 
-        swipe(session, firstTmdbId, "SKIP");
+        swipe(session, firstId, "SKIP");
 
-        long secondTmdbId = getTmdbIdFromNextFeed(session);
+        long secondId = getIdFromNextFeed(session);
 
-        if (firstTmdbId == secondTmdbId) {
+        if (firstId == secondId) {
             throw new AssertionError("SKIP did not filter movie from next feed");
         }
     }
@@ -105,8 +102,8 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
         MockHttpSession sessionA = new MockHttpSession();
         MockHttpSession sessionB = new MockHttpSession();
 
-        for (long tmdbId : new long[]{101L, 102L, 103L}) {
-            swipe(sessionA, tmdbId, "SKIP");
+        for (long id : allMovieIds()) {
+            swipe(sessionA, id, "SKIP");
         }
 
         mockMvc.perform(get("/api/swipe/next").session(sessionA))
@@ -161,27 +158,30 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    private long getTmdbIdFromNextFeed(MockHttpSession httpSession) throws Exception {
+    private long getIdFromNextFeed(MockHttpSession httpSession) throws Exception {
         String response = mockMvc.perform(get("/api/swipe/next").session(httpSession))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        return extractTmdbId(response);
+        return extractLongField(response, "\"id\":");
     }
 
-    private void swipe(MockHttpSession httpSession, long tmdbId, String action) throws Exception {
+    private void swipe(MockHttpSession httpSession, long movieId, String action) throws Exception {
         mockMvc.perform(post("/api/swipe")
                         .session(httpSession)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"movie_id\": %d, \"action\": \"%s\"}".formatted(tmdbId, action)))
+                        .content("{\"movie_id\": %d, \"action\": \"%s\"}".formatted(movieId, action)))
                 .andExpect(status().isOk());
     }
 
-    private long extractTmdbId(String json) {
-        String field = "\"tmdb_id\":";
+    private List<Long> allMovieIds() {
+        return jdbcTemplate.queryForList("SELECT id FROM movies ORDER BY tmdb_id", Long.class);
+    }
+
+    private long extractLongField(String json, String field) {
         int index = json.indexOf(field);
-        if (index == -1) throw new IllegalStateException("No tmdb_id in response: " + json);
+        if (index == -1) throw new IllegalStateException("Field " + field + " not found in: " + json);
         int start = index + field.length();
         int end = start;
         while (end < json.length() && Character.isDigit(json.charAt(end))) end++;

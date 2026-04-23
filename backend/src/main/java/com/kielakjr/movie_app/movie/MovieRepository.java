@@ -18,8 +18,8 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     @Query("SELECT m.tmdbId FROM Movie m")
     Set<Long> findAllTmdbIds();
 
-    @Query("SELECT m FROM Movie m WHERE m.tmdbId NOT IN :seenTmdbIds ORDER BY FUNCTION('random')")
-    List<Movie> findUnseen(@Param("seenTmdbIds") Set<Long> seenTmdbIds, Pageable pageable);
+    @Query("SELECT m FROM Movie m WHERE m.id NOT IN :seenIds ORDER BY FUNCTION('random')")
+    List<Movie> findUnseen(@Param("seenIds") Set<Long> seenIds, Pageable pageable);
 
     @Modifying
     @Query(value = "UPDATE movies SET embedding = CAST(:embedding AS vector) WHERE id = :id", nativeQuery = true)
