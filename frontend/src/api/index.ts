@@ -1,4 +1,5 @@
 export * from './movies';
+export * from './swipe';
 
 export function fetchWithCreds(
   input: RequestInfo | URL,

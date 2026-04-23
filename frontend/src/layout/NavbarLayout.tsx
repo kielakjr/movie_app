@@ -19,6 +19,12 @@ const NavbarLayout = () => {
           >
             Movies
           </NavLink>
+          <NavLink
+            to="/swipe"
+            className={({ isActive }) => `navbar-link${isActive ? ' active' : ''}`}
+          >
+            Swipe
+          </NavLink>
         </div>
       </nav>
       <Outlet />
