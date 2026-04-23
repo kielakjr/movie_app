@@ -33,7 +33,7 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void getNext_returnsMovie_whenMoviesExist() throws Exception {
+    void getUnseen_returnsMovie_whenMoviesExist() throws Exception {
         mockMvc.perform(get("/api/swipe/next").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tmdb_id").exists())
@@ -41,7 +41,7 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void getNext_throwsWhenNoDatabaseMovies() throws Exception {
+    void getUnseen_throwsWhenNoDatabaseMovies() throws Exception {
         jdbcTemplate.execute("DELETE FROM movies");
 
         assertThrows(Exception.class, () ->
@@ -50,7 +50,7 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void getNext_throwsWhenAllMoviesHaveBeenSwiped() throws Exception {
+    void getUnseen_throwsWhenAllMoviesHaveBeenSwiped() throws Exception {
         for (long tmdbId : new long[]{101L, 102L, 103L}) {
             mockMvc.perform(post("/api/swipe")
                             .session(session)

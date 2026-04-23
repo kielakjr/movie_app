@@ -129,7 +129,7 @@ class SwipeServiceTest {
     class GetNextFeed {
         @Test
         void returnsNextMovieFromService() {
-            when(movieService.getNextMovie(any())).thenReturn(Optional.of(createMovieResponse(42L)));
+            when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(42L)));
 
             var response = swipeService.getNextFeed(session);
 
@@ -139,7 +139,7 @@ class SwipeServiceTest {
 
         @Test
         void noMoreMovies_throwsException() {
-            when(movieService.getNextMovie(any())).thenReturn(Optional.empty());
+            when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () -> swipeService.getNextFeed(session));
         }

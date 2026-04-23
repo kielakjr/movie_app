@@ -34,7 +34,7 @@ public class SwipeService {
     public MovieResponse getNextFeed(HttpSession httpSession) {
         var state = sessionService.getState(httpSession);
         var seenIds = state.getSeenMovieIds();
-        var movie = movieService.getNextMovie(seenIds);
+        var movie = movieService.getUnseenMovie(seenIds);
         if (movie.isEmpty()) {
             throw new RuntimeException("No more movies available");
         }

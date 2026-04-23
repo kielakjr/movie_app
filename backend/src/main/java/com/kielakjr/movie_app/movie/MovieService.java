@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 
@@ -53,12 +54,9 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<MovieResponse> getNextMovie(Set<Long> seenTmdbIds) {
-        var movie = movieRepository.findAll(Pageable.unpaged()).stream()
-                .filter(m -> !seenTmdbIds.contains(m.getTmdbId()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No more movies available"));
-        return Optional.of(toMovieResponse(movie));
+    public Optional<MovieResponse> getUnseenMovie(Set<Long> seenTmdbIds) {
+        return movieRepository.findUnseen(seenTmdbIds, PageRequest.of(0, 1))
+                .stream().findFirst().map(MovieService::toMovieResponse);
     }
 
     public static String toVectorString(float[] embedding) {

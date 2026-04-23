@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -119,10 +120,10 @@ class MovieServiceTest {
     }
 
     @Nested
-    class GetNextMovie {
+    class GetUnseenMovie {
 
         @Test
-        void returnsNextMovieFromRepository() {
+        void mapsRepositoryResultToDto() {
             Movie movie = Movie.builder()
                     .id(42L).tmdbId(4242L).title("Title 42")
                     .overview("Overview").releaseDate(LocalDate.of(2020, 1, 1))
@@ -132,27 +133,32 @@ class MovieServiceTest {
                     .voteAverage(5.0).voteCount(100)
                     .build();
 
-            when(movieRepository.findAll(Pageable.unpaged()))
-                    .thenReturn(new PageImpl<>(List.of(movie)));
+            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of(movie));
 
-            var result = movieService.getNextMovie(Set.of()).orElseThrow();
+            var result = movieService.getUnseenMovie(Set.of()).orElseThrow();
             assertThat(result.id()).isEqualTo(42L);
             assertThat(result.tmdbId()).isEqualTo(4242L);
             assertThat(result.title()).isEqualTo("Title 42");
         }
 
         @Test
-        void seenMoviesAreFilteredOut() {
-            Movie movie1 = Movie.builder().id(1L).tmdbId(101L).title("Movie 1").build();
-            Movie movie2 = Movie.builder().id(2L).tmdbId(102L).title("Movie 2").build();
+        void returnsEmptyWhenRepositoryFindsNothing() {
+            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of());
 
-            when(movieRepository.findAll(Pageable.unpaged()))
-                    .thenReturn(new PageImpl<>(List.of(movie1, movie2)));
+            assertThat(movieService.getUnseenMovie(Set.of(101L, 102L))).isEmpty();
+        }
 
-            var result = movieService.getNextMovie(Set.of(101L)).orElseThrow();
-            assertThat(result.id()).isEqualTo(2L);
-            assertThat(result.tmdbId()).isEqualTo(102L);
-            assertThat(result.title()).isEqualTo("Movie 2");
+        @Test
+        void passesSeenIdsToRepository() {
+            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of());
+
+            movieService.getUnseenMovie(Set.of(101L, 102L));
+
+            // Filtering is done by the DB query — verify the correct set is forwarded
+            org.mockito.Mockito.verify(movieRepository).findUnseen(
+                    org.mockito.ArgumentMatchers.eq(Set.of(101L, 102L)),
+                    any()
+            );
         }
 
     }
