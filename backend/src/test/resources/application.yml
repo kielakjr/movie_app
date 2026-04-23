@@ -1,0 +1,13 @@
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+tmdb:
+  api-key: test-key-for-integration-tests
+  base-url: https://api.themoviedb.org/3
+  images:
+    poster-base-url: https://image.tmdb.org/t/p/w500
+    backdrop-base-url: https://image.tmdb.org/t/p/w780
+
+embedding:
+  base-url: http://localhost:8000
