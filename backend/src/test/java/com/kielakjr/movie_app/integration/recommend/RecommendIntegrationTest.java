@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
@@ -13,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Arrays;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class RecommendIntegrationTest extends BaseIntegrationTest {
@@ -34,7 +36,7 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
     }
 
     @Nested
-    class RecommendEndpointTests {
+    class WithDirectEmbedding {
 
         @Test
         void recommend_returns400_withHelpfulMessage_whenNoUserEmbedding() throws Exception {
@@ -93,19 +95,6 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
         }
 
         @Test
-        void recommend_returnsMoviesSortedBySimilarityToUserEmbedding() throws Exception {
-            float[] similarEmbedding = uniformVector(0.9f);
-            float[] dissimilarEmbedding = uniformVector(0.1f);
-            insertMovieWithEmbedding(201L, "Very Similar Movie", similarEmbedding);
-            insertMovieWithEmbedding(202L, "Less Similar Movie", dissimilarEmbedding);
-            setUserEmbedding(session, uniformVector(0.9f));
-
-            mockMvc.perform(get("/api/recommend").session(session))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].tmdb_id").value(201));
-        }
-
-        @Test
         void recommend_sessionIsolation_embeddingInOneSessionDoesNotAffectAnother() throws Exception {
             MockHttpSession sessionWithEmbedding = new MockHttpSession();
             MockHttpSession sessionWithoutEmbedding = new MockHttpSession();
@@ -119,6 +108,101 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
         }
     }
 
+    @Nested
+    class AfterSwipingFlow {
+
+        @Test
+        void afterLikingMovieWithEmbedding_userEmbeddingIsBuilt_andRecommendationsAreReturned() throws Exception {
+            insertMovieWithEmbedding(201L, "Liked Movie", genreAVector());
+            insertMovieWithEmbedding(202L, "Another Movie", genreAVector());
+
+            swipeLike(getMovieId(201L));
+
+            mockMvc.perform(get("/api/recommend").session(session))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].tmdb_id").value(202));
+        }
+
+        @Test
+        void afterLikingMovieWithoutEmbedding_userEmbeddingIsNotSet_andRecommendationsFail() throws Exception {
+            jdbcTemplate.update("INSERT INTO movies (tmdb_id, title, adult) VALUES (201, 'No Embedding', false)");
+
+            swipeLike(getMovieId(201L));
+
+            mockMvc.perform(get("/api/recommend").session(session))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("User embedding not set"));
+        }
+
+        @Test
+        void afterLiking_likedAndSeenMoviesAreExcludedFromRecommendations() throws Exception {
+            insertMovieWithEmbedding(201L, "Liked", genreAVector());
+            insertMovieWithEmbedding(202L, "Skipped", genreAVector());
+            insertMovieWithEmbedding(203L, "Unseen", genreAVector());
+
+            swipeLike(getMovieId(201L));
+            swipeSkip(getMovieId(202L));
+
+            mockMvc.perform(get("/api/recommend").session(session))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].tmdb_id").value(203));
+        }
+
+        @Test
+        void afterLikingGenreAMovies_genreAIsRecommendedBeforeGenreB() throws Exception {
+            insertMovieWithEmbedding(201L, "Genre A liked", genreAVector());
+            insertMovieWithEmbedding(202L, "Genre A unseen", genreAVector());
+            insertMovieWithEmbedding(203L, "Genre B unseen", genreBVector());
+
+            swipeLike(getMovieId(201L));
+
+            mockMvc.perform(get("/api/recommend?limit=2").session(session))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].tmdb_id").value(202))
+                    .andExpect(jsonPath("$[1].tmdb_id").value(203));
+        }
+
+        @Test
+        void afterMultipleLikesOfSameGenre_genreStaysTopRecommendation() throws Exception {
+            insertMovieWithEmbedding(201L, "Genre A liked 1", genreAVector());
+            insertMovieWithEmbedding(202L, "Genre A liked 2", genreAVector());
+            insertMovieWithEmbedding(203L, "Genre A unseen", genreAVector());
+            insertMovieWithEmbedding(204L, "Genre B unseen", genreBVector());
+
+            swipeLike(getMovieId(201L));
+            swipeLike(getMovieId(202L));
+
+            mockMvc.perform(get("/api/recommend?limit=2").session(session))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].tmdb_id").value(203))
+                    .andExpect(jsonPath("$[1].tmdb_id").value(204));
+        }
+    }
+
+    private void swipeLike(long movieId) throws Exception {
+        mockMvc.perform(post("/api/swipe")
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"movie_id\": %d, \"action\": \"LIKE\"}".formatted(movieId)))
+                .andExpect(status().isOk());
+    }
+
+    private void swipeSkip(long movieId) throws Exception {
+        mockMvc.perform(post("/api/swipe")
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"movie_id\": %d, \"action\": \"SKIP\"}".formatted(movieId)))
+                .andExpect(status().isOk());
+    }
+
+    private long getMovieId(long tmdbId) {
+        return jdbcTemplate.queryForObject("SELECT id FROM movies WHERE tmdb_id = ?", Long.class, tmdbId);
+    }
+
     private void setUserEmbedding(MockHttpSession httpSession, float[] embedding) {
         SwipeSessionState state = new SwipeSessionState();
         state.setUserEmbedding(embedding);
@@ -128,6 +212,18 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
     private float[] uniformVector(float value) {
         float[] v = new float[VECTOR_DIMS];
         Arrays.fill(v, value);
+        return v;
+    }
+
+    private float[] genreAVector() {
+        float[] v = new float[VECTOR_DIMS];
+        Arrays.fill(v, 0, VECTOR_DIMS / 2, 1.0f);
+        return v;
+    }
+
+    private float[] genreBVector() {
+        float[] v = new float[VECTOR_DIMS];
+        Arrays.fill(v, VECTOR_DIMS / 2, VECTOR_DIMS, 1.0f);
         return v;
     }
 
