@@ -1,5 +1,6 @@
 export * from './movies';
 export * from './swipe';
+export * from './recommend';
 
 export function fetchWithCreds(
   input: RequestInfo | URL,
