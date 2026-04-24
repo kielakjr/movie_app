@@ -61,7 +61,14 @@ public class MovieService {
 
     @Transactional(readOnly = true)
     public float[] getEmbeddingById(Long id) {
-        return movieRepository.getEmbeddingById(id);
+        String raw = movieRepository.getEmbeddingByIdRaw(id);
+        if (raw == null) return null;
+        String[] parts = raw.substring(1, raw.length() - 1).split(",");
+        float[] result = new float[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            result[i] = Float.parseFloat(parts[i].trim());
+        }
+        return result;
     }
 
     public static String toVectorString(float[] embedding) {
