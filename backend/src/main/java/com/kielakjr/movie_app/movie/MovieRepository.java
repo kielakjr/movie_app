@@ -28,6 +28,9 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     @Query(value = "SELECT * FROM movies WHERE embedding IS NOT NULL ORDER BY embedding <=> CAST(:embedding AS vector) LIMIT :limit", nativeQuery = true)
     List<Movie> findSimilar(@Param("embedding") String embedding, @Param("limit") int limit);
 
+    @Query(value = "SELECT * FROM movies WHERE embedding IS NOT NULL AND id NOT IN :seenIds ORDER BY embedding <=> CAST(:embedding AS vector) LIMIT :limit", nativeQuery = true)
+    List<Movie> findSimilarExcluding(@Param("embedding") String embedding, @Param("limit") int limit, @Param("seenIds") Set<Long> seenIds);
+
     @Query(value = "SELECT embedding::text FROM movies WHERE id = :id AND embedding IS NOT NULL", nativeQuery = true)
     String getEmbeddingByIdRaw(@Param("id") Long id);
 }

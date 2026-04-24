@@ -21,6 +21,6 @@ public class RecommendService {
             throw new IllegalStateException("User embedding not set");
         }
 
-        return movieService.findSimilar(state.getUserEmbedding(), limit);
+        return movieService.findSimilar(state.getUserEmbedding(), limit, state.getSeenMovieIds());
     }
 }

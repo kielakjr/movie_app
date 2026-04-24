@@ -54,6 +54,15 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
+    public List<MovieResponse> findSimilar(float[] queryEmbedding, int limit, Set<Long> seenIds) {
+        String vec = toVectorString(queryEmbedding);
+        List<Movie> movies = seenIds.isEmpty()
+                ? movieRepository.findSimilar(vec, limit)
+                : movieRepository.findSimilarExcluding(vec, limit, seenIds);
+        return movies.stream().map(MovieService::toMovieResponse).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public Optional<MovieResponse> getUnseenMovie(Set<Long> seenIds) {
         return movieRepository.findUnseen(seenIds, PageRequest.of(0, 1))
                 .stream().findFirst().map(MovieService::toMovieResponse);

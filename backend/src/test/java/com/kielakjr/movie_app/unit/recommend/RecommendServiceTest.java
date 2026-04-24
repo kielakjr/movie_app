@@ -53,9 +53,9 @@ public class RecommendServiceTest {
         @Test
         void validUserEmbedding_callsMovieServiceFindSimilar() {
             state.setUserEmbedding(new float[]{0.1f, 0.2f, 0.3f});
-            when(movieService.findSimilar(any(), anyInt())).thenReturn(null);
+            when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(null);
             recommendService.getRecommendedMovies(session, 10);
-            verify(movieService).findSimilar(any(), anyInt());
+            verify(movieService).findSimilar(any(), anyInt(), any());
         }
 
     }
