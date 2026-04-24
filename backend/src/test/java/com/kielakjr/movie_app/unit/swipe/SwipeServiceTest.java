@@ -4,6 +4,7 @@ import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.session.SessionService;
 import com.kielakjr.movie_app.session.SwipeSessionState;
+import com.kielakjr.movie_app.cluster.ClusterService;
 import com.kielakjr.movie_app.swipe.SwipeService;
 import com.kielakjr.movie_app.swipe.dto.SwipeAction;
 import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
@@ -19,6 +20,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -30,6 +37,9 @@ class SwipeServiceTest {
 
     @Mock
     private MovieService movieService;
+
+    @Mock
+    private ClusterService clusterService;
 
     @InjectMocks
     private SwipeService swipeService;
@@ -51,82 +61,163 @@ class SwipeServiceTest {
     @Nested
     class Swipe {
 
-        @Test
-        void like_addsMovieToSeenIds() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+        @Nested
+        class Like {
 
-            assertThat(state.getSeenMovieIds()).containsExactly(42L);
+            private static final float[] MOVIE_EMBEDDING = {1.0f, 0.5f};
+            private static final float[] UPDATED_EMBEDDING = {0.8f, 0.4f};
+
+            @BeforeEach
+            void setUp() {
+                when(movieService.getEmbeddingById(any())).thenReturn(MOVIE_EMBEDDING);
+                when(clusterService.updateUserCluster(any(), any(), anyInt())).thenReturn(UPDATED_EMBEDDING);
+            }
+
+            @Test
+            void addsMovieToSeenIds() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+
+                assertThat(state.getSeenMovieIds()).containsExactly(42L);
+            }
+
+            @Test
+            void addsMovieToLikedIds() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+
+                assertThat(state.getLikedMovieIds()).containsExactly(42L);
+            }
+
+            @Test
+            void incrementsLikesCount() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+
+                assertThat(state.getLikesCount()).isEqualTo(1);
+            }
+
+            @Test
+            void doesNotAddToDislikedIds() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+
+                assertThat(state.getDislikedMovieIds()).isEmpty();
+            }
+
+            @Test
+            void fetchesEmbeddingByMovieId() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+
+                verify(movieService).getEmbeddingById(42L);
+            }
+
+            @Test
+            void updatesUserEmbeddingInState() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+
+                assertThat(state.getUserEmbedding()).isEqualTo(UPDATED_EMBEDDING);
+            }
+
+            @Test
+            void callsClusterServiceWithInitialNullEmbeddingAndIncrementedCount() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+
+                verify(clusterService).updateUserCluster(isNull(), eq(MOVIE_EMBEDDING), eq(1));
+            }
+
+            @Test
+            void subsequentLikePassesPreviousUpdatedEmbeddingToCluster() {
+                swipeService.swipe(new SwipeRequest(1L, SwipeAction.LIKE), session);
+                swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
+
+                verify(clusterService).updateUserCluster(eq(UPDATED_EMBEDDING), eq(MOVIE_EMBEDDING), eq(2));
+            }
+
+            @Test
+            void callsClusterServiceOncePerLike() {
+                swipeService.swipe(new SwipeRequest(1L, SwipeAction.LIKE), session);
+                swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
+                swipeService.swipe(new SwipeRequest(3L, SwipeAction.LIKE), session);
+
+                verify(clusterService, times(3)).updateUserCluster(any(), any(), anyInt());
+            }
+
+            @Test
+            void multipleLikes_accumulateLikesCountAndSeenIds() {
+                swipeService.swipe(new SwipeRequest(1L, SwipeAction.LIKE), session);
+                swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
+                swipeService.swipe(new SwipeRequest(3L, SwipeAction.LIKE), session);
+
+                assertThat(state.getLikesCount()).isEqualTo(3);
+                assertThat(state.getSeenMovieIds()).containsExactlyInAnyOrder(1L, 2L, 3L);
+            }
         }
 
-        @Test
-        void like_incrementsLikesCount() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+        @Nested
+        class Dislike {
 
-            assertThat(state.getLikesCount()).isEqualTo(1);
+            @Test
+            void addsMovieToDislikedIds() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+
+                assertThat(state.getDislikedMovieIds()).containsExactly(42L);
+            }
+
+            @Test
+            void doesNotIncrementLikesCount() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+
+                assertThat(state.getLikesCount()).isEqualTo(0);
+            }
+
+            @Test
+            void addsToSeenIds() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+
+                assertThat(state.getSeenMovieIds()).containsExactly(42L);
+            }
+
+            @Test
+            void doesNotCallClusterService() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+
+                verify(clusterService, never()).updateUserCluster(any(), any(), anyInt());
+            }
         }
 
-        @Test
-        void like_doesNotAddToDislikedIds() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
+        @Nested
+        class Skip {
 
-            assertThat(state.getDislikedMovieIds()).isEmpty();
-        }
+            @Test
+            void addsMovieToSeenIds() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
 
-        @Test
-        void dislike_addsMovieToDislikedIds() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+                assertThat(state.getSeenMovieIds()).containsExactly(42L);
+            }
 
-            assertThat(state.getDislikedMovieIds()).containsExactly(42L);
-        }
+            @Test
+            void doesNotIncrementLikesCount() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
 
-        @Test
-        void dislike_doesNotIncrementLikesCount() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+                assertThat(state.getLikesCount()).isEqualTo(0);
+            }
 
-            assertThat(state.getLikesCount()).isEqualTo(0);
-        }
+            @Test
+            void doesNotAddToDislikedIds() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
 
-        @Test
-        void dislike_doesAddToSeenIds() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+                assertThat(state.getDislikedMovieIds()).isEmpty();
+            }
 
-            assertThat(state.getSeenMovieIds()).containsExactly(42L);
-        }
+            @Test
+            void doesNotCallClusterService() {
+                swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
 
-        @Test
-        void skip_addsMovieToSeenIds() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-
-            assertThat(state.getSeenMovieIds()).containsExactly(42L);
-        }
-
-        @Test
-        void skip_doesNotIncrementLikesCount() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-
-            assertThat(state.getLikesCount()).isEqualTo(0);
-        }
-
-        @Test
-        void skip_doesNotAddToDislikedIds() {
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-
-            assertThat(state.getDislikedMovieIds()).isEmpty();
-        }
-
-        @Test
-        void multipleLikes_accumulateLikesCountAndSeenIds() {
-            swipeService.swipe(new SwipeRequest(1L, SwipeAction.LIKE), session);
-            swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
-            swipeService.swipe(new SwipeRequest(3L, SwipeAction.LIKE), session);
-
-            assertThat(state.getLikesCount()).isEqualTo(3);
-            assertThat(state.getSeenMovieIds()).containsExactlyInAnyOrder(1L, 2L, 3L);
+                verify(clusterService, never()).updateUserCluster(any(), any(), anyInt());
+            }
         }
     }
 
     @Nested
     class GetNextFeed {
+
         @Test
         void returnsNextMovieFromService() {
             when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(42L)));

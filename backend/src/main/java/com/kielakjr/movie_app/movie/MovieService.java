@@ -59,6 +59,11 @@ public class MovieService {
                 .stream().findFirst().map(MovieService::toMovieResponse);
     }
 
+    @Transactional(readOnly = true)
+    public float[] getEmbeddingById(Long id) {
+        return movieRepository.getEmbeddingById(id);
+    }
+
     public static String toVectorString(float[] embedding) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < embedding.length; i++) {

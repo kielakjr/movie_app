@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import com.kielakjr.movie_app.session.SessionService;
 import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
+import com.kielakjr.movie_app.cluster.ClusterService;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpSession;
 import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
@@ -13,6 +14,7 @@ import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
 public class SwipeService {
     private final SessionService sessionService;
     private final MovieService movieService;
+    private final ClusterService clusterService;
 
     public void swipe(SwipeRequest request, HttpSession httpSession) {
         var state = sessionService.getState(httpSession);
@@ -22,6 +24,11 @@ public class SwipeService {
                 state.getSeenMovieIds().add(request.movieId());
                 state.getLikedMovieIds().add(request.movieId());
                 state.setLikesCount(state.getLikesCount() + 1);
+                var movieEmbedding = movieService.getEmbeddingById(request.movieId());
+                if (movieEmbedding != null) {
+                    var updatedCluster = clusterService.updateUserCluster(state.getUserEmbedding(), movieEmbedding, state.getLikesCount());
+                    state.setUserEmbedding(updatedCluster);
+                }
             }
             case DISLIKE -> {
                 state.getSeenMovieIds().add(request.movieId());

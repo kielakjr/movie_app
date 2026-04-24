@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 
-import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,7 +65,7 @@ class SessionServiceTest {
 
         @Test
         void modifiedUserEmbedding_persistsAcrossCalls() {
-            sessionService.getState(session).setUserEmbedding(List.of(0.1f, 0.2f));
+            sessionService.getState(session).setUserEmbedding(new float[]{0.1f, 0.2f});
 
             assertThat(sessionService.getState(session).getUserEmbedding()).containsExactly(0.1f, 0.2f);
         }
