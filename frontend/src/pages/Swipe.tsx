@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useNextSwipeMovie, usePeekMovie, useSwipe, useRecommendations } from '../hooks';
 import type { Movie } from '../types';
 import RecommendationsModal from '../components/RecommendationsModal';
@@ -16,26 +16,16 @@ const Swipe = () => {
   const [showRecs, setShowRecs] = useState(false);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [flying, setFlying] = useState<'left' | 'right' | 'skip' | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const [current, setCurrent] = useState<Movie | null>(null);
-  const [peek, setPeek] = useState<Movie | null>(null);
+  const [current, setCurrent] = useState<Movie | null | undefined>(undefined);
+  const effectiveCurrent = current === undefined ? (initialMovie ?? null) : current;
 
-  const dragStart = useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
+  const { data: fetchedPeek } = usePeekMovie(effectiveCurrent?.id);
+  const effectivePeek = fetchedPeek?.id !== effectiveCurrent?.id ? (fetchedPeek ?? null) : null;
+
+  const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const pendingAction = useRef<{ action: 'LIKE' | 'DISLIKE' | 'SKIP'; movieId: number } | null>(null);
-
-  useEffect(() => {
-    if (initialMovie && !current) {
-      setCurrent(initialMovie);
-    }
-  }, [initialMovie]);
-
-  const { data: fetchedPeek } = usePeekMovie(current && !peek ? current.id : undefined);
-
-  useEffect(() => {
-    if (fetchedPeek && fetchedPeek.id !== current?.id) {
-      setPeek(fetchedPeek);
-    }
-  }, [fetchedPeek, current?.id]);
 
   if (isLoading) return <div className="state-center">Loading...</div>;
   if (error || (!isLoading && !initialMovie)) return (
@@ -45,10 +35,17 @@ const Swipe = () => {
       <p className="swipe-done-sub">Check back later for new additions.</p>
     </div>
   );
-  if (!current) return null;
+  if (current === null) return (
+    <div className="state-center swipe-done">
+      <span className="swipe-done-icon">🎬</span>
+      <p>You've seen all movies!</p>
+      <p className="swipe-done-sub">Check back later for new additions.</p>
+    </div>
+  );
+  if (!effectiveCurrent) return null;
 
-  const year = current.release_date?.slice(0, 4);
-  const rating = current.vote_average ? current.vote_average.toFixed(1) : null;
+  const year = effectiveCurrent.release_date?.slice(0, 4);
+  const rating = effectiveCurrent.vote_average ? effectiveCurrent.vote_average.toFixed(1) : null;
 
   const doSwipe = (movieId: number, action: 'LIKE' | 'DISLIKE' | 'SKIP') => {
     swipe({ movieId, action }, {
@@ -67,7 +64,7 @@ const Swipe = () => {
 
   const launchCard = (dir: 'left' | 'right' | 'skip', action: 'LIKE' | 'DISLIKE' | 'SKIP') => {
     if (flying) return;
-    pendingAction.current = { action, movieId: current.id };
+    pendingAction.current = { action, movieId: effectiveCurrent.id };
     setFlying(dir);
     setDrag({ x: 0, y: 0 });
   };
@@ -76,23 +73,19 @@ const Swipe = () => {
     const pending = pendingAction.current;
     pendingAction.current = null;
     setFlying(null);
-
-    setCurrent(peek);
-    setPeek(null);
-
-    if (pending) {
-      doSwipe(pending.movieId, pending.action);
-    }
+    setCurrent(effectivePeek); // null when no more movies → shows exhausted state
+    if (pending) doSwipe(pending.movieId, pending.action);
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (flying) return;
-    dragStart.current = { x: e.clientX, y: e.clientY, active: true };
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    setIsDragging(true);
     (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragStart.current.active) return;
+    if (!isDragging) return;
     setDrag({
       x: e.clientX - dragStart.current.x,
       y: e.clientY - dragStart.current.y,
@@ -100,8 +93,8 @@ const Swipe = () => {
   };
 
   const onPointerUp = () => {
-    if (!dragStart.current.active) return;
-    dragStart.current.active = false;
+    if (!isDragging) return;
+    setIsDragging(false);
     if (Math.abs(drag.x) > DRAG_THRESHOLD) {
       launchCard(drag.x > 0 ? 'right' : 'left', drag.x > 0 ? 'LIKE' : 'DISLIKE');
     } else {
@@ -109,7 +102,6 @@ const Swipe = () => {
     }
   };
 
-  const isDragging = dragStart.current.active;
   const rotation = flying ? 0 : (drag.x / 200) * MAX_ROTATION;
 
   const cardStyle = flying ? {} : {
@@ -124,10 +116,10 @@ const Swipe = () => {
     <>
       <div className="swipe-page">
         <div className="swipe-stack">
-          {peek && (
+          {effectivePeek && (
             <div className="swipe-card swipe-card-peek" aria-hidden>
-              {peek.poster_path ? (
-                <img className="swipe-poster" src={peek.poster_path} alt={peek.title} draggable={false} />
+              {effectivePeek.poster_path ? (
+                <img className="swipe-poster" src={effectivePeek.poster_path} alt={effectivePeek.title} draggable={false} />
               ) : (
                 <div className="swipe-poster-placeholder" />
               )}
@@ -143,24 +135,24 @@ const Swipe = () => {
             onPointerCancel={onPointerUp}
             onAnimationEnd={handleAnimationEnd}
           >
-            {current.poster_path ? (
-              <img className="swipe-poster" src={current.poster_path} alt={current.title} draggable={false} />
+            {effectiveCurrent.poster_path ? (
+              <img className="swipe-poster" src={effectiveCurrent.poster_path} alt={effectiveCurrent.title} draggable={false} />
             ) : (
               <div className="swipe-poster-placeholder">No poster</div>
             )}
 
             <div className="swipe-overlay">
-              <h2 className="swipe-title">{current.title}</h2>
+              <h2 className="swipe-title">{effectiveCurrent.title}</h2>
               <div className="swipe-meta">
                 {rating && <span className="movie-card-rating">★ {rating}</span>}
                 {year && <span className="movie-card-year">{year}</span>}
-                {current.original_language && (
-                  <span className="swipe-lang">{current.original_language.toUpperCase()}</span>
+                {effectiveCurrent.original_language && (
+                  <span className="swipe-lang">{effectiveCurrent.original_language.toUpperCase()}</span>
                 )}
               </div>
-              {current.genres && current.genres.length > 0 && (
+              {effectiveCurrent.genres && effectiveCurrent.genres.length > 0 && (
                 <div className="movie-card-genres">
-                  {current.genres.slice(0, 3).map(genre => (
+                  {effectiveCurrent.genres.slice(0, 3).map(genre => (
                     <span key={genre} className="genre-tag">{genre}</span>
                   ))}
                 </div>
