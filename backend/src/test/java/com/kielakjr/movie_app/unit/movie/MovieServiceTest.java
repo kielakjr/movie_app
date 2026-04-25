@@ -17,10 +17,13 @@ import org.springframework.data.domain.PageRequest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class MovieServiceTest {
@@ -153,12 +156,55 @@ class MovieServiceTest {
 
             movieService.getUnseenMovie(Set.of(101L, 102L));
 
-            // Filtering is done by the DB query — verify the correct set is forwarded
-            org.mockito.Mockito.verify(movieRepository).findUnseen(
-                    org.mockito.ArgumentMatchers.eq(Set.of(101L, 102L)),
-                    any()
-            );
+            verify(movieRepository).findUnseen(eq(Set.of(101L, 102L)), any());
         }
 
+    }
+
+    @Nested
+    class GetMovieByEmbedding {
+
+        @Test
+        void mapsRepositoryResultToDto() {
+            float[] embedding = new float[]{0.1f, 0.2f};
+            String vecString = "[0.1,0.2]";
+            Movie movie = Movie.builder()
+                    .id(99L).tmdbId(999L).title("Embedded Movie")
+                    .overview("Overview").releaseDate(LocalDate.of(2021, 5, 5))
+                    .originalLanguage("en").adult(false)
+                    .posterPath("/poster.jpg").backdropPath("/backdrop.jpg")
+                    .genres(List.of("Genre")).popularity(20.0)
+                    .voteAverage(7.5).voteCount(500)
+                    .build();
+
+            when(movieRepository.findByEmbedding(vecString)).thenReturn(Optional.of(movie));
+
+            var result = movieService.getMovieByEmbedding(embedding).orElseThrow();
+            assertThat(result.id()).isEqualTo(99L);
+            assertThat(result.tmdbId()).isEqualTo(999L);
+            assertThat(result.title()).isEqualTo("Embedded Movie");
+        }
+
+        @Test
+        void returnsEmptyWhenRepositoryFindsNothing() {
+            float[] embedding = new float[]{0.1f, 0.2f};
+            String vecString = "[0.1,0.2]";
+
+            when(movieRepository.findByEmbedding(vecString)).thenReturn(Optional.empty());
+
+            assertThat(movieService.getMovieByEmbedding(embedding)).isEmpty();
+        }
+
+        @Test
+        void convertsEmbeddingToVectorString() {
+            float[] embedding = new float[]{0.3f, 0.4f};
+            String vecString = "[0.3,0.4]";
+
+            when(movieRepository.findByEmbedding(vecString)).thenReturn(Optional.empty());
+
+            movieService.getMovieByEmbedding(embedding);
+
+            verify(movieRepository).findByEmbedding(eq(vecString));
+        }
     }
 }

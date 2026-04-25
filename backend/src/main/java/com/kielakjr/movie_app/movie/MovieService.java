@@ -80,6 +80,12 @@ public class MovieService {
         return result;
     }
 
+    @Transactional(readOnly = true)
+    public Optional<MovieResponse> getMovieByEmbedding(float[] embedding) {
+        String vec = toVectorString(embedding);
+        return movieRepository.findByEmbedding(vec).map(MovieService::toMovieResponse);
+    }
+
     public static String toVectorString(float[] embedding) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < embedding.length; i++) {

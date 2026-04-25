@@ -66,8 +66,8 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(2))
-                    .andExpect(jsonPath("$[0].tmdb_id").exists())
-                    .andExpect(jsonPath("$[0].title").exists());
+                    .andExpect(jsonPath("$[0].movie.tmdb_id").exists())
+                    .andExpect(jsonPath("$[0].movie.title").exists());
         }
 
         @Test
@@ -121,7 +121,7 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(get("/api/recommend").session(session))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
-                    .andExpect(jsonPath("$[0].tmdb_id").value(202));
+                    .andExpect(jsonPath("$[0].movie.tmdb_id").value(202));
         }
 
         @Test
@@ -147,7 +147,7 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(get("/api/recommend").session(session))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
-                    .andExpect(jsonPath("$[0].tmdb_id").value(203));
+                    .andExpect(jsonPath("$[0].movie.tmdb_id").value(203));
         }
 
         @Test
@@ -161,8 +161,8 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(get("/api/recommend?limit=2").session(session))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2))
-                    .andExpect(jsonPath("$[0].tmdb_id").value(202))
-                    .andExpect(jsonPath("$[1].tmdb_id").value(203));
+                    .andExpect(jsonPath("$[0].movie.tmdb_id").value(202))
+                    .andExpect(jsonPath("$[1].movie.tmdb_id").value(203));
         }
 
         @Test
@@ -178,8 +178,8 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(get("/api/recommend?limit=2").session(session))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2))
-                    .andExpect(jsonPath("$[0].tmdb_id").value(203))
-                    .andExpect(jsonPath("$[1].tmdb_id").value(204));
+                    .andExpect(jsonPath("$[0].movie.tmdb_id").value(203))
+                    .andExpect(jsonPath("$[1].movie.tmdb_id").value(204));
         }
     }
 
