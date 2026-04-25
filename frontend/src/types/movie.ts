@@ -18,3 +18,8 @@ export interface Movie {
   vote_count: number;
 }
 
+export interface RecommendMovieResponse {
+  movie: Movie;
+  reason: Movie;
+}
+

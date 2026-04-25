@@ -107,7 +107,7 @@ const Swipe = () => {
 
       {showRecs && (
         <RecommendationsModal
-          movies={recommendations}
+          recommendations={recommendations}
           isLoading={recsFetching}
           onClose={() => setShowRecs(false)}
         />

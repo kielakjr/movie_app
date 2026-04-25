@@ -1,12 +1,12 @@
-import type { Movie } from '../types';
+import type { RecommendMovieResponse } from '../types';
 
 interface RecommendationsModalProps {
-  movies: Movie[] | undefined;
+  recommendations: RecommendMovieResponse[] | undefined;
   isLoading: boolean;
   onClose: () => void;
 }
 
-const RecommendationsModal = ({ movies, isLoading, onClose }: RecommendationsModalProps) => {
+const RecommendationsModal = ({ recommendations, isLoading, onClose }: RecommendationsModalProps) => {
   return (
     <div className="recs-overlay" onClick={onClose}>
       <div className="recs-panel" onClick={e => e.stopPropagation()}>
@@ -23,13 +23,13 @@ const RecommendationsModal = ({ movies, isLoading, onClose }: RecommendationsMod
             <div className="recs-state">Finding your picks...</div>
           )}
 
-          {!isLoading && movies && movies.length === 0 && (
+          {!isLoading && recommendations && recommendations.length === 0 && (
             <div className="recs-state">No recommendations yet — keep liking movies!</div>
           )}
 
-          {!isLoading && movies && movies.length > 0 && (
+          {!isLoading && recommendations && recommendations.length > 0 && (
             <div className="recs-grid">
-              {movies.map(movie => {
+              {recommendations.map(({ movie, reason }) => {
                 const year = movie.release_date?.slice(0, 4);
                 const rating = movie.vote_average ? movie.vote_average.toFixed(1) : null;
                 return (
@@ -45,6 +45,7 @@ const RecommendationsModal = ({ movies, isLoading, onClose }: RecommendationsMod
                         {rating && <span className="movie-card-rating">★ {rating}</span>}
                         {year && <span className="movie-card-year">{year}</span>}
                       </div>
+                      <p className="recs-card-reason">Because you liked: {reason.title}</p>
                     </div>
                   </div>
                 );
