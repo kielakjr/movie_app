@@ -6,7 +6,7 @@ import java.util.List;
 
 @Service
 public class ClusterService {
-    private static final float CLUSTER_DISTANCE_THRESHOLD = 0.3f;
+    private static final float CLUSTER_DISTANCE_THRESHOLD = 0.6f;
 
     public void addToClusters(float[] embedding, List<Cluster> clusters) {
         Cluster bestCluster = findBestCluster(embedding, clusters);
@@ -45,7 +45,7 @@ public class ClusterService {
         return cosineDistance(embedding, cluster.getCentroid());
     }
 
-    private float cosineSimilarity(float[] vecA, float[] vecB) {
+    public static float cosineSimilarity(float[] vecA, float[] vecB) {
         float dotProduct = 0.0f;
         float normA = 0.0f;
         float normB = 0.0f;

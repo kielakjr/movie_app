@@ -80,6 +80,7 @@ public class RecommendServiceTest {
             state.getClusters().add(cluster);
             when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.of(createMovieResponse(1L)));
             when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(createMovieResponse(2L)));
+            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{0.1f, 0.2f});
             var recommendations = recommendService.getRecommendedMovies(session, 10);
             verify(movieService).findSimilar(any(), eq(10), any());
             assertThat(recommendations).hasSize(1);
