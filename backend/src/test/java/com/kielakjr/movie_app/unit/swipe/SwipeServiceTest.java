@@ -17,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpSession;
 import java.util.Optional;
+import java.util.Set;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -214,6 +216,56 @@ class SwipeServiceTest {
             when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
 
             assertThrows(RuntimeException.class, () -> swipeService.getNextFeed(session));
+        }
+    }
+
+    @Nested
+    class PeekNextFeed {
+
+        @Test
+        void returnsMovieExcludingGivenId() {
+            when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(99L)));
+
+            var result = swipeService.peekNextFeed(session, 42L);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().id()).isEqualTo(99L);
+        }
+
+        @Test
+        void excludeIdIsAddedToSeenIds_withoutMutatingSessionState() {
+            when(movieService.getUnseenMovie(any())).thenAnswer(invocation -> {
+                Set<Long> excluded = invocation.getArgument(0);
+                assertThat(excluded).contains(42L);
+                return Optional.of(createMovieResponse(99L));
+            });
+
+            swipeService.peekNextFeed(session, 42L);
+
+            assertThat(state.getSeenMovieIds()).doesNotContain(42L);
+        }
+
+        @Test
+        void existingSeenIdsAreAlsoExcluded() {
+            state.getSeenMovieIds().add(10L);
+            state.getSeenMovieIds().add(11L);
+
+            when(movieService.getUnseenMovie(any())).thenAnswer(invocation -> {
+                Set<Long> excluded = invocation.getArgument(0);
+                assertThat(excluded).containsAll(List.of(10L, 11L, 42L));
+                return Optional.of(createMovieResponse(99L));
+            });
+
+            swipeService.peekNextFeed(session, 42L);
+        }
+
+        @Test
+        void returnsEmptyWhenNoMovieAvailable() {
+            when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
+
+            var result = swipeService.peekNextFeed(session, 42L);
+
+            assertThat(result).isEmpty();
         }
     }
 }

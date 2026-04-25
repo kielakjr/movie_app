@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -156,6 +157,95 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void peek_returnsADifferentMovie_whenExcludeIdIsCurrentMovie() throws Exception {
+        long currentId = getIdFromNextFeed(session);
+
+        String response = mockMvc.perform(get("/api/swipe/peek")
+                        .param("excludeId", String.valueOf(currentId))
+                        .session(session))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        long peekId = extractLongField(response, "\"id\":");
+        assertThat(peekId).isNotEqualTo(currentId);
+    }
+
+    @Test
+    void peek_returnsNoContent_whenOnlyOneMovieLeft() throws Exception {
+        List<Long> ids = allMovieIds();
+        for (long id : ids.subList(1, ids.size())) {
+            swipe(session, id, "SKIP");
+        }
+        long lastId = ids.get(0);
+
+        mockMvc.perform(get("/api/swipe/peek")
+                        .param("excludeId", String.valueOf(lastId))
+                        .session(session))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void peek_doesNotConsumeMovie_soItStillAppearsInNextFeed() throws Exception {
+        List<Long> ids = allMovieIds();
+        jdbcTemplate.update("DELETE FROM movies WHERE id = ?", ids.get(2));
+
+        long currentId = getIdFromNextFeed(session);
+
+        String peekResponse = mockMvc.perform(get("/api/swipe/peek")
+                        .param("excludeId", String.valueOf(currentId))
+                        .session(session))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        long peekId = extractLongField(peekResponse, "\"id\":");
+
+        swipe(session, currentId, "SKIP");
+
+        long nextId = getIdFromNextFeed(session);
+        assertThat(nextId).isEqualTo(peekId);
+    }
+
+    @Test
+    void peek_respectsAlreadySeenMovies() throws Exception {
+        List<Long> ids = allMovieIds();
+        long current = ids.get(0);
+        long alreadySeen = ids.get(1);
+
+        swipe(session, alreadySeen, "SKIP");
+
+        String response = mockMvc.perform(get("/api/swipe/peek")
+                        .param("excludeId", String.valueOf(current))
+                        .session(session))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        long peekId = extractLongField(response, "\"id\":");
+        assertThat(peekId).isNotEqualTo(current);
+        assertThat(peekId).isNotEqualTo(alreadySeen);
+    }
+
+    @Test
+    void peek_sessionIsolation_seenMoviesInOneSessionDoNotAffectAnother() throws Exception {
+        MockHttpSession sessionA = new MockHttpSession();
+        MockHttpSession sessionB = new MockHttpSession();
+
+        long currentId = getIdFromNextFeed(sessionA);
+        List<Long> allIds = allMovieIds();
+        for (long id : allIds) {
+            if (id != currentId) swipe(sessionA, id, "SKIP");
+        }
+
+        mockMvc.perform(get("/api/swipe/peek")
+                        .param("excludeId", String.valueOf(currentId))
+                        .session(sessionA))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/swipe/peek")
+                        .param("excludeId", String.valueOf(currentId))
+                        .session(sessionB))
+                .andExpect(status().isOk());
     }
 
     private long getIdFromNextFeed(MockHttpSession httpSession) throws Exception {

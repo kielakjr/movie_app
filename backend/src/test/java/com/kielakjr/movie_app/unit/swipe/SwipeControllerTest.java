@@ -1,5 +1,6 @@
 package com.kielakjr.movie_app.unit.swipe;
 
+import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import com.kielakjr.movie_app.swipe.SwipeController;
 import com.kielakjr.movie_app.swipe.SwipeService;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +14,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
@@ -92,6 +100,38 @@ class SwipeControllerTest {
                             .content("""
                                     {"movieId": 1, "action": "INVALID"}
                                     """))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    class Peek {
+
+        private MovieResponse movieResponse() {
+            return new MovieResponse(99L, 199L, "Peek Movie", "Overview", "2024-01-01", "en", false,
+                    "/poster.jpg", "/backdrop.jpg", new String[]{"Action"}, 7.5, 8.0, 200);
+        }
+
+        @Test
+        void returnsOkWithMovie_whenPeekMovieExists() throws Exception {
+            when(swipeService.peekNextFeed(any(), eq(1L))).thenReturn(Optional.of(movieResponse()));
+
+            mockMvc.perform(get("/api/swipe/peek").param("excludeId", "1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(99));
+        }
+
+        @Test
+        void returnsNoContent_whenNoPeekMovieAvailable() throws Exception {
+            when(swipeService.peekNextFeed(any(), eq(1L))).thenReturn(Optional.empty());
+
+            mockMvc.perform(get("/api/swipe/peek").param("excludeId", "1"))
+                    .andExpect(status().isNoContent());
+        }
+
+        @Test
+        void missingExcludeId_returnsBadRequest() throws Exception {
+            mockMvc.perform(get("/api/swipe/peek"))
                     .andExpect(status().isBadRequest());
         }
     }

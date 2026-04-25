@@ -8,6 +8,8 @@ import com.kielakjr.movie_app.cluster.ClusterService;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpSession;
 import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
+import java.util.Optional;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
@@ -45,5 +47,12 @@ public class SwipeService {
             throw new RuntimeException("No more movies available");
         }
         return movie.get();
+    }
+
+    public Optional<MovieResponse> peekNextFeed(HttpSession httpSession, Long excludeId) {
+        var state = sessionService.getState(httpSession);
+        var excluded = new HashSet<>(state.getSeenMovieIds());
+        excluded.add(excludeId);
+        return movieService.getUnseenMovie(excluded);
     }
 }
