@@ -3,6 +3,7 @@ package com.kielakjr.movie_app.unit.recommend;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +19,7 @@ import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.session.SessionService;
 import com.kielakjr.movie_app.session.SwipeSessionState;
 import com.kielakjr.movie_app.recommend.RecommendService;
+import com.kielakjr.movie_app.cluster.Cluster;
 import org.mockito.InjectMocks;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,19 +46,22 @@ public class RecommendServiceTest {
     class GetRecommendedMovies {
 
         @Test
-        void userEmbeddingNotSet_throwsIllegalStateException() {
+        void throwsIfNoClusters() {
             assertThatThrownBy(() -> recommendService.getRecommendedMovies(session, 10))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("User embedding not set");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("User embedding not set");
         }
 
         @Test
-        void validUserEmbedding_callsMovieServiceFindSimilar() {
-            state.setUserEmbedding(new float[]{0.1f, 0.2f, 0.3f});
-            when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(null);
-            recommendService.getRecommendedMovies(session, 10);
-            verify(movieService).findSimilar(any(), anyInt(), any());
-        }
+        void callsMovieServiceWithClusterCentroid() {
+            var cluster = new Cluster();
+            cluster.addMovieEmbedding(new float[]{1.0f, 0.5f});
+            state.getClusters().add(cluster);
 
+            recommendService.getRecommendedMovies(session, 10);
+
+            verify(movieService).findSimilar(eq(cluster.getCentroid()), anyInt(), eq(state.getSeenMovieIds()));
+
+        }
     }
 }

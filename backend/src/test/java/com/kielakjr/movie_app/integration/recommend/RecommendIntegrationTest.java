@@ -16,7 +16,7 @@ import java.util.Arrays;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+import com.kielakjr.movie_app.cluster.Cluster;
 class RecommendIntegrationTest extends BaseIntegrationTest {
 
     private static final int VECTOR_DIMS = 384;
@@ -205,7 +205,9 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
 
     private void setUserEmbedding(MockHttpSession httpSession, float[] embedding) {
         SwipeSessionState state = new SwipeSessionState();
-        state.setUserEmbedding(embedding);
+        var cluster = new Cluster();
+        cluster.addMovieEmbedding(embedding);
+        state.getClusters().add(cluster);
         httpSession.setAttribute("STATE", state);
     }
 

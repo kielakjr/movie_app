@@ -20,9 +20,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -65,12 +63,10 @@ class SwipeServiceTest {
         class Like {
 
             private static final float[] MOVIE_EMBEDDING = {1.0f, 0.5f};
-            private static final float[] UPDATED_EMBEDDING = {0.8f, 0.4f};
 
             @BeforeEach
             void setUp() {
                 when(movieService.getEmbeddingById(any())).thenReturn(MOVIE_EMBEDDING);
-                when(clusterService.updateUserCluster(any(), any(), anyInt())).thenReturn(UPDATED_EMBEDDING);
             }
 
             @Test
@@ -109,25 +105,10 @@ class SwipeServiceTest {
             }
 
             @Test
-            void updatesUserEmbeddingInState() {
+            void addsMovieToClusters() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
 
-                assertThat(state.getUserEmbedding()).isEqualTo(UPDATED_EMBEDDING);
-            }
-
-            @Test
-            void callsClusterServiceWithInitialNullEmbeddingAndIncrementedCount() {
-                swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
-
-                verify(clusterService).updateUserCluster(isNull(), eq(MOVIE_EMBEDDING), eq(1));
-            }
-
-            @Test
-            void subsequentLikePassesPreviousUpdatedEmbeddingToCluster() {
-                swipeService.swipe(new SwipeRequest(1L, SwipeAction.LIKE), session);
-                swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
-
-                verify(clusterService).updateUserCluster(eq(UPDATED_EMBEDDING), eq(MOVIE_EMBEDDING), eq(2));
+                verify(clusterService).addToClusters(eq(MOVIE_EMBEDDING), eq(state.getClusters()));
             }
 
             @Test
@@ -136,7 +117,7 @@ class SwipeServiceTest {
                 swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
                 swipeService.swipe(new SwipeRequest(3L, SwipeAction.LIKE), session);
 
-                verify(clusterService, times(3)).updateUserCluster(any(), any(), anyInt());
+                verify(clusterService, times(3)).addToClusters(any(), any());
             }
 
             @Test
@@ -178,7 +159,7 @@ class SwipeServiceTest {
             void doesNotCallClusterService() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
 
-                verify(clusterService, never()).updateUserCluster(any(), any(), anyInt());
+                verify(clusterService, never()).addToClusters(any(), any());
             }
         }
 
@@ -210,7 +191,7 @@ class SwipeServiceTest {
             void doesNotCallClusterService() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
 
-                verify(clusterService, never()).updateUserCluster(any(), any(), anyInt());
+                verify(clusterService, never()).addToClusters(any(), any());
             }
         }
     }

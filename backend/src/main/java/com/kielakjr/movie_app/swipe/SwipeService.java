@@ -26,8 +26,7 @@ public class SwipeService {
                 state.setLikesCount(state.getLikesCount() + 1);
                 var movieEmbedding = movieService.getEmbeddingById(request.movieId());
                 if (movieEmbedding != null) {
-                    var updatedCluster = clusterService.updateUserCluster(state.getUserEmbedding(), movieEmbedding, state.getLikesCount());
-                    state.setUserEmbedding(updatedCluster);
+                    clusterService.addToClusters(movieEmbedding, state.getClusters());
                 }
             }
             case DISLIKE -> {

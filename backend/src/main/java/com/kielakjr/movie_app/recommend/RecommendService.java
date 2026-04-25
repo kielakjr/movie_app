@@ -17,10 +17,9 @@ public class RecommendService {
 
     public List<MovieResponse> getRecommendedMovies(HttpSession session, int limit) {
         var state = sessionService.getState(session);
-        if (state.getUserEmbedding() == null) {
+        if (state.getClusters().isEmpty()) {
             throw new IllegalStateException("User embedding not set");
         }
-
-        return movieService.findSimilar(state.getUserEmbedding(), limit, state.getSeenMovieIds());
+        return movieService.findSimilar(state.getClusters().get(0).getCentroid(), limit, state.getSeenMovieIds());
     }
 }
