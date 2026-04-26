@@ -8,8 +8,8 @@ import com.kielakjr.movie_app.tmdb.TmdbClient;
 import com.kielakjr.movie_app.tmdb.TmdbImageUrlBuilder;
 import com.kielakjr.movie_app.tmdb.dto.TmdbGenreListResponse;
 import com.kielakjr.movie_app.tmdb.dto.TmdbGenreListResponse.TmdbGenre;
-import com.kielakjr.movie_app.tmdb.dto.TmdbPopularResponse;
-import com.kielakjr.movie_app.tmdb.dto.TmdbPopularResponse.TmdbMovie;
+import com.kielakjr.movie_app.tmdb.dto.TmdbMovieResponse;
+import com.kielakjr.movie_app.tmdb.dto.TmdbMovieResponse.TmdbMovie;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,130 +49,208 @@ class SeedServiceTest {
     }
 
     @Nested
-    class Deduplication {
+    class SeedPopularMovies {
+
+        @Nested
+        class Deduplication {
+
+            @Test
+            void newMovies_areSavedAndCounted() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(101L, "Mad Max", "2015-05-14", List.of(28)))));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn("https://img/poster.jpg");
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 101L, "Mad Max")));
+                when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f});
+
+                assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
+                verify(movieService).saveAll(argThat(list -> list.size() == 1));
+            }
+
+            @Test
+            void existingMovies_areFilteredOut() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(101L, "Already Seeded", "2015-01-01", List.of(28)))));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of(101L));
+
+                assertThat(seedService.seedPopularMovies(1)).isEqualTo(0);
+                verify(movieService, never()).saveAll(any());
+            }
+        }
+
+        @Nested
+        class EmbeddingGeneration {
+
+            @Test
+            void successfulEmbedding_updatesMovieRecord() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(1L, "Film", "2020-01-01", List.of(28)))));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(10L, 1L, "Film")));
+                when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f, 0.2f});
+
+                seedService.seedPopularMovies(1);
+
+                verify(movieService).batchUpdateEmbeddings(argThat(map -> map.containsKey(10L)));
+            }
+
+            @Test
+            void failedEmbedding_movieStillSavedWithoutEmbedding() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(2L, "No Embed", "2020-06-01", List.of(28)))));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(2L, 2L, "No Embed")));
+                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+
+                assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
+                verify(movieService, never()).batchUpdateEmbeddings(any());
+            }
+        }
+
+        @Nested
+        class MovieMapping {
+
+            @Test
+            void unknownGenreIds_areSkippedInGenreList() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(77L, "Mystery", "2021-01-01", List.of(28, 999)))));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f});
+
+                ArgumentCaptor<List<Movie>> captor = ArgumentCaptor.forClass(List.class);
+                when(movieService.saveAll(captor.capture())).thenReturn(List.of(savedMovie(3L, 77L, "Mystery")));
+
+                seedService.seedPopularMovies(1);
+
+                assertThat(captor.getValue().get(0).getGenres()).containsExactly("Action");
+            }
+
+            @Test
+            void nullReleaseDate_doesNotThrow() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(1L, "No Date", null, List.of()))));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 1L, "No Date")));
+                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+
+                assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
+            }
+
+            @Test
+            void malformedReleaseDate_doesNotThrow() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(2L, "Bad Date", "not-a-date", List.of()))));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(2L, 2L, "Bad Date")));
+                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+
+                assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
+            }
+        }
+
+        @Nested
+        class MultiPageFetch {
+
+            @Test
+            void fetchesEachPageFromTmdb() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(1L, "A", "2020-01-01", List.of()))));
+                when(tmdbClient.getPopularMovies(2)).thenReturn(new TmdbMovieResponse(2, List.of(movie(2L, "B", "2021-01-01", List.of()))));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 1L, "A"), savedMovie(2L, 2L, "B")));
+                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+
+                assertThat(seedService.seedPopularMovies(2)).isEqualTo(2);
+                verify(tmdbClient).getPopularMovies(1);
+                verify(tmdbClient).getPopularMovies(2);
+            }
+        }
+    }
+
+    @Nested
+    class SeedTopRatedMovies {
+
+        @Test
+        void callsTopRatedEndpoint_notPopular() {
+            when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+            when(tmdbClient.getTopRatedMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(200L, "Godfather", "1972-03-24", List.of(28)))));
+            when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+            when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+            when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+            when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 200L, "Godfather")));
+            when(embeddingClient.embed(any())).thenReturn(new float[0]);
+
+            seedService.seedTopRatedMovies(1);
+
+            verify(tmdbClient).getTopRatedMovies(1);
+            verify(tmdbClient, never()).getPopularMovies(anyInt());
+        }
 
         @Test
         void newMovies_areSavedAndCounted() {
-            when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
-            when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbPopularResponse(1, List.of(movie(101L, "Mad Max", "2015-05-14", List.of(28)))));
+            when(tmdbClient.getGenres()).thenReturn(genres(18, "Drama"));
+            when(tmdbClient.getTopRatedMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(300L, "Shawshank", "1994-09-23", List.of(18)))));
             when(movieService.findAllTmdbIds()).thenReturn(Set.of());
-            when(imageUrlBuilder.posterUrl(any())).thenReturn("https://img/poster.jpg");
+            when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
             when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
-            when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 101L, "Mad Max")));
-            when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f});
+            when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 300L, "Shawshank")));
+            when(embeddingClient.embed(any())).thenReturn(new float[]{0.5f});
 
-            assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
-            verify(movieService).saveAll(argThat(list -> list.size() == 1));
+            assertThat(seedService.seedTopRatedMovies(1)).isEqualTo(1);
         }
 
         @Test
         void existingMovies_areFilteredOut() {
             when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
-            when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbPopularResponse(1, List.of(movie(101L, "Already Seeded", "2015-01-01", List.of(28)))));
-            when(movieService.findAllTmdbIds()).thenReturn(Set.of(101L));
+            when(tmdbClient.getTopRatedMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(400L, "Already Here", "2000-01-01", List.of(28)))));
+            when(movieService.findAllTmdbIds()).thenReturn(Set.of(400L));
 
-            assertThat(seedService.seedPopularMovies(1)).isEqualTo(0);
+            assertThat(seedService.seedTopRatedMovies(1)).isEqualTo(0);
             verify(movieService, never()).saveAll(any());
         }
-    }
-
-    @Nested
-    class EmbeddingGeneration {
 
         @Test
-        void successfulEmbedding_updatesMovieRecord() {
+        void multiPageFetch_callsEachPage() {
             when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
-            when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbPopularResponse(1, List.of(movie(1L, "Film", "2020-01-01", List.of(28)))));
-            when(movieService.findAllTmdbIds()).thenReturn(Set.of());
-            when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
-            when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
-            when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(10L, 1L, "Film")));
-            when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f, 0.2f});
-
-            seedService.seedPopularMovies(1);
-
-            verify(movieService).batchUpdateEmbeddings(argThat(map -> map.containsKey(10L)));
-        }
-
-        @Test
-        void failedEmbedding_movieStillSavedWithoutEmbedding() {
-            when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
-            when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbPopularResponse(1, List.of(movie(2L, "No Embed", "2020-06-01", List.of(28)))));
-            when(movieService.findAllTmdbIds()).thenReturn(Set.of());
-            when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
-            when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
-            when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(2L, 2L, "No Embed")));
-            when(embeddingClient.embed(any())).thenReturn(new float[0]);
-
-            assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
-            verify(movieService, never()).batchUpdateEmbeddings(any());
-        }
-    }
-
-    @Nested
-    class MovieMapping {
-
-        @Test
-        void unknownGenreIds_areSkippedInGenreList() {
-            when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
-            when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbPopularResponse(1, List.of(movie(77L, "Mystery", "2021-01-01", List.of(28, 999)))));
-            when(movieService.findAllTmdbIds()).thenReturn(Set.of());
-            when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
-            when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
-            when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f});
-
-            ArgumentCaptor<List<Movie>> captor = ArgumentCaptor.forClass(List.class);
-            when(movieService.saveAll(captor.capture())).thenReturn(List.of(savedMovie(3L, 77L, "Mystery")));
-
-            seedService.seedPopularMovies(1);
-
-            assertThat(captor.getValue().get(0).getGenres()).containsExactly("Action");
-        }
-
-        @Test
-        void nullReleaseDate_doesNotThrow() {
-            when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
-            when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbPopularResponse(1, List.of(movie(1L, "No Date", null, List.of()))));
-            when(movieService.findAllTmdbIds()).thenReturn(Set.of());
-            when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
-            when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
-            when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 1L, "No Date")));
-            when(embeddingClient.embed(any())).thenReturn(new float[0]);
-
-            assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
-        }
-
-        @Test
-        void malformedReleaseDate_doesNotThrow() {
-            when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
-            when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbPopularResponse(1, List.of(movie(2L, "Bad Date", "not-a-date", List.of()))));
-            when(movieService.findAllTmdbIds()).thenReturn(Set.of());
-            when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
-            when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
-            when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(2L, 2L, "Bad Date")));
-            when(embeddingClient.embed(any())).thenReturn(new float[0]);
-
-            assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
-        }
-    }
-
-    @Nested
-    class MultiPageFetch {
-
-        @Test
-        void fetchesEachPageFromTmdb() {
-            when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
-            when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbPopularResponse(1, List.of(movie(1L, "A", "2020-01-01", List.of()))));
-            when(tmdbClient.getPopularMovies(2)).thenReturn(new TmdbPopularResponse(2, List.of(movie(2L, "B", "2021-01-01", List.of()))));
+            when(tmdbClient.getTopRatedMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(1L, "A", "2020-01-01", List.of()))));
+            when(tmdbClient.getTopRatedMovies(2)).thenReturn(new TmdbMovieResponse(2, List.of(movie(2L, "B", "2021-01-01", List.of()))));
             when(movieService.findAllTmdbIds()).thenReturn(Set.of());
             when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
             when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
             when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 1L, "A"), savedMovie(2L, 2L, "B")));
             when(embeddingClient.embed(any())).thenReturn(new float[0]);
 
-            assertThat(seedService.seedPopularMovies(2)).isEqualTo(2);
-            verify(tmdbClient).getPopularMovies(1);
-            verify(tmdbClient).getPopularMovies(2);
+            assertThat(seedService.seedTopRatedMovies(2)).isEqualTo(2);
+            verify(tmdbClient).getTopRatedMovies(1);
+            verify(tmdbClient).getTopRatedMovies(2);
+        }
+
+        @Test
+        void embeddingGenerated_updatesMovieRecord() {
+            when(tmdbClient.getGenres()).thenReturn(genres(18, "Drama"));
+            when(tmdbClient.getTopRatedMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(movie(5L, "Citizen Kane", "1941-09-05", List.of(18)))));
+            when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+            when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+            when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+            when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(50L, 5L, "Citizen Kane")));
+            when(embeddingClient.embed(any())).thenReturn(new float[]{0.9f});
+
+            seedService.seedTopRatedMovies(1);
+
+            verify(movieService).batchUpdateEmbeddings(argThat(map -> map.containsKey(50L)));
         }
     }
 }

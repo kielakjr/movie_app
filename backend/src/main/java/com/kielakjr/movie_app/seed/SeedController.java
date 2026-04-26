@@ -24,4 +24,17 @@ public class SeedController {
         int count = seedService.seedPopularMovies(pages);
         return ResponseEntity.ok().body(count + " movies seeded");
     }
+
+    @PostMapping("/top-rated")
+    public ResponseEntity<String> seedTopRatedMovies(@RequestParam(defaultValue = "5") @Valid @Min(1) @Max(500) int pages) {
+        int count = seedService.seedTopRatedMovies(pages);
+        return ResponseEntity.ok().body(count + " movies seeded");
+    }
+
+    @PostMapping("/all")
+    public ResponseEntity<String> seedAllMovies(@RequestParam(defaultValue = "5") @Valid @Min(1) @Max(500) int pages) {
+        int popularCount = seedService.seedPopularMovies(pages);
+        int topRatedCount = seedService.seedTopRatedMovies(pages);
+        return ResponseEntity.ok().body(popularCount + topRatedCount + " movies seeded (" + popularCount + " popular, " + topRatedCount + " top-rated)");
+    }
 }

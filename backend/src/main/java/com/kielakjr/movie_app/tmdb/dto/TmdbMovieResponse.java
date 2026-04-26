@@ -2,7 +2,7 @@ package com.kielakjr.movie_app.tmdb.dto;
 
 import java.util.List;
 
-public record TmdbPopularResponse(Integer page, List<TmdbMovie> results) {
+public record TmdbMovieResponse(Integer page, List<TmdbMovie> results) {
     public record TmdbMovie(
             Boolean adult,
             String backdrop_path,

@@ -105,4 +105,102 @@ class TmdbClientTest {
             assertEquals(2, movie.genre_ids().size());
         }
     }
+
+    @Nested
+    class GetTopRatedMovies {
+
+        @Nested
+        class Validation {
+
+            @Test
+            void pageZero_throwsIllegalArgument() {
+                assertThrows(IllegalArgumentException.class, () -> client.getTopRatedMovies(0));
+            }
+
+            @Test
+            void page501_throwsIllegalArgument() {
+                assertThrows(IllegalArgumentException.class, () -> client.getTopRatedMovies(501));
+            }
+
+            @Test
+            void page1_isAccepted() {
+                mockServer.expect(requestTo("https://api.themoviedb.org/3/movie/top_rated?page=1"))
+                        .andRespond(withSuccess("""
+                                {"page": 1, "results": []}
+                                """, MediaType.APPLICATION_JSON));
+
+                assertDoesNotThrow(() -> client.getTopRatedMovies(1));
+            }
+
+            @Test
+            void page500_isAccepted() {
+                mockServer.expect(requestTo("https://api.themoviedb.org/3/movie/top_rated?page=500"))
+                        .andRespond(withSuccess("""
+                                {"page": 500, "results": []}
+                                """, MediaType.APPLICATION_JSON));
+
+                assertDoesNotThrow(() -> client.getTopRatedMovies(500));
+            }
+        }
+
+        @Test
+        void hitsTopRatedEndpoint_notPopular() {
+            mockServer.expect(requestTo("https://api.themoviedb.org/3/movie/top_rated?page=1"))
+                    .andRespond(withSuccess("""
+                            {"page": 1, "results": []}
+                            """, MediaType.APPLICATION_JSON));
+
+            client.getTopRatedMovies(1);
+
+            mockServer.verify();
+        }
+
+        @Test
+        void emptyResults_returnsPageWithEmptyList() {
+            mockServer.expect(requestTo("https://api.themoviedb.org/3/movie/top_rated?page=1"))
+                    .andRespond(withSuccess("""
+                            {"page": 1, "results": []}
+                            """, MediaType.APPLICATION_JSON));
+
+            var result = client.getTopRatedMovies(1);
+
+            assertNotNull(result);
+            assertEquals(1, result.page());
+            assertNotNull(result.results());
+            assertEquals(0, result.results().size());
+        }
+
+        @Test
+        void withResults_deserializesAllMovieFields() {
+            mockServer.expect(requestTo("https://api.themoviedb.org/3/movie/top_rated?page=1"))
+                    .andRespond(withSuccess("""
+                            {
+                              "page": 1,
+                              "results": [{
+                                "id": 278,
+                                "title": "The Shawshank Redemption",
+                                "overview": "Two imprisoned men bond.",
+                                "release_date": "1994-09-23",
+                                "original_language": "en",
+                                "adult": false,
+                                "poster_path": "/shawshank.jpg",
+                                "backdrop_path": "/backdrop.jpg",
+                                "genre_ids": [18],
+                                "popularity": 120.0,
+                                "vote_average": 8.7,
+                                "vote_count": 25000
+                              }]
+                            }
+                            """, MediaType.APPLICATION_JSON));
+
+            var result = client.getTopRatedMovies(1);
+            var movie = result.results().get(0);
+
+            assertEquals(1, result.results().size());
+            assertEquals(278L, movie.id());
+            assertEquals("The Shawshank Redemption", movie.title());
+            assertEquals(8.7, movie.vote_average());
+            assertEquals(1, movie.genre_ids().size());
+        }
+    }
 }

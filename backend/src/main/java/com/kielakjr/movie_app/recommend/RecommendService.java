@@ -12,7 +12,6 @@ import jakarta.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,7 +33,6 @@ public class RecommendService {
             var clusterRecommendations = getRecommendedMoviesForCluster(cluster, perClusterLimit, seenMovieIds);
             recommendations.addAll(clusterRecommendations);
         }
-        ClusterService.cosineSimilarity(new float[]{1, 0}, new float[]{0, 1});
         return recommendations.stream()
                 .sorted((a, b) -> Float.compare(b.similarity(), a.similarity()))
                 .limit(limit)

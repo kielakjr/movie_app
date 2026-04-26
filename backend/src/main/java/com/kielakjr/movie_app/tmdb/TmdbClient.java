@@ -17,12 +17,21 @@ public class TmdbClient {
                 .body(TmdbGenreListResponse.class);
     }
 
-    public TmdbPopularResponse getPopularMovies(int page) {
+    public TmdbMovieResponse getPopularMovies(int page) {
         if (page < 1 || page > 500)
             throw new IllegalArgumentException("page must be between 1 and 500");
         return tmdbRestClient.get()
                 .uri(b -> b.path("/movie/popular").queryParam("page", page).build())
                 .retrieve()
-                .body(TmdbPopularResponse.class);
+                .body(TmdbMovieResponse.class);
+    }
+
+    public TmdbMovieResponse getTopRatedMovies(int page) {
+        if (page < 1 || page > 500)
+            throw new IllegalArgumentException("page must be between 1 and 500");
+        return tmdbRestClient.get()
+                .uri(b -> b.path("/movie/top_rated").queryParam("page", page).build())
+                .retrieve()
+                .body(TmdbMovieResponse.class);
     }
 }
