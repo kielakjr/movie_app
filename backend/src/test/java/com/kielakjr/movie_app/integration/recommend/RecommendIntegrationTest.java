@@ -136,7 +136,7 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
         }
 
         @Test
-        void afterLiking_likedAndSeenMoviesAreExcludedFromRecommendations() throws Exception {
+        void afterLiking_likedAndNotSeenAreRemovedFromRecommendations() throws Exception {
             insertMovieWithEmbedding(201L, "Liked", genreAVector());
             insertMovieWithEmbedding(202L, "Skipped", genreAVector());
             insertMovieWithEmbedding(203L, "Unseen", genreAVector());
@@ -146,8 +146,8 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
 
             mockMvc.perform(get("/api/recommend").session(session))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.length()").value(1))
-                    .andExpect(jsonPath("$[0].movie.tmdb_id").value(203));
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].movie.tmdb_id").value(202));
         }
 
         @Test
