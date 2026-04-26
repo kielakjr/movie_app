@@ -9,7 +9,7 @@ const MAX_ROTATION = 18;
 
 const Swipe = () => {
   const { data: initialMovie, isLoading, error } = useNextSwipeMovie();
-  const { mutate: swipe } = useSwipe();
+  const { mutate: swipe, isPending: swipePending } = useSwipe();
   const { data: recommendations, isFetching: recsFetching, refetch: fetchRecs } = useRecommendations(5);
 
   const [likesCount, setLikesCount] = useState(0);
@@ -21,11 +21,20 @@ const Swipe = () => {
   const [current, setCurrent] = useState<Movie | null | undefined>(undefined);
   const effectiveCurrent = current === undefined ? (initialMovie ?? null) : current;
 
-  const { data: fetchedPeek } = usePeekMovie(effectiveCurrent?.id);
-  const effectivePeek = fetchedPeek?.id !== effectiveCurrent?.id ? (fetchedPeek ?? null) : null;
+  const { data: fetchedPeek, isFetching: peekFetching } = usePeekMovie(effectiveCurrent?.id, !swipePending);
+  const peekIsTrustworthy = !swipePending && !peekFetching;
+  const effectivePeek = peekIsTrustworthy && fetchedPeek?.id !== effectiveCurrent?.id
+    ? (fetchedPeek ?? null)
+    : null;
 
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const pendingAction = useRef<{ action: 'LIKE' | 'DISLIKE' | 'SKIP'; movieId: number } | null>(null);
+  const pendingAction = useRef<{
+    action: 'LIKE' | 'DISLIKE' | 'SKIP';
+    movieId: number;
+    nextMovie: Movie | null;
+  } | null>(null);
+
+  const canSwipe = !flying && !swipePending && peekIsTrustworthy;
 
   if (isLoading) return <div className="state-center">Loading...</div>;
   if (error || (!isLoading && !initialMovie)) return (
@@ -63,8 +72,12 @@ const Swipe = () => {
   };
 
   const launchCard = (dir: 'left' | 'right' | 'skip', action: 'LIKE' | 'DISLIKE' | 'SKIP') => {
-    if (flying) return;
-    pendingAction.current = { action, movieId: effectiveCurrent.id };
+    if (!canSwipe) return;
+    pendingAction.current = {
+      action,
+      movieId: effectiveCurrent.id,
+      nextMovie: effectivePeek,
+    };
     setFlying(dir);
     setDrag({ x: 0, y: 0 });
   };
@@ -73,12 +86,14 @@ const Swipe = () => {
     const pending = pendingAction.current;
     pendingAction.current = null;
     setFlying(null);
-    setCurrent(effectivePeek); // null when no more movies → shows exhausted state
-    if (pending) doSwipe(pending.movieId, pending.action);
+    if (pending) {
+      setCurrent(pending.nextMovie); // snapshot taken before swipe fired
+      doSwipe(pending.movieId, pending.action);
+    }
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (flying) return;
+    if (!canSwipe) return;
     dragStart.current = { x: e.clientX, y: e.clientY };
     setIsDragging(true);
     (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
@@ -165,7 +180,7 @@ const Swipe = () => {
           <button
             className="swipe-btn swipe-btn-dislike"
             onClick={() => launchCard('left', 'DISLIKE')}
-            disabled={!!flying}
+            disabled={!canSwipe}
             title="Dislike"
           >
             ✕
@@ -173,7 +188,7 @@ const Swipe = () => {
           <button
             className="swipe-btn swipe-btn-skip"
             onClick={() => launchCard('skip', 'SKIP')}
-            disabled={!!flying}
+            disabled={!canSwipe}
             title="Skip"
           >
             →
@@ -181,7 +196,7 @@ const Swipe = () => {
           <button
             className="swipe-btn swipe-btn-like"
             onClick={() => launchCard('right', 'LIKE')}
-            disabled={!!flying}
+            disabled={!canSwipe}
             title="Like"
           >
             ♥

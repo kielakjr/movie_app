@@ -11,13 +11,14 @@ export const useNextSwipeMovie = () => {
   });
 };
 
-export const usePeekMovie = (excludeId: number | undefined) => {
+export const usePeekMovie = (excludeId: number | undefined, enabled: boolean = true) => {
   return useQuery({
     queryKey: ['swipe', 'peek', excludeId],
     queryFn: () => fetchPeekMovie(excludeId!),
-    enabled: excludeId != null,
+    enabled: enabled && excludeId != null,
     retry: false,
     staleTime: 0,
+    gcTime: 0,
   });
 };
 
@@ -28,6 +29,7 @@ export const useSwipe = () => {
       postSwipe(movieId, action),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['swipe', 'next'] });
+      queryClient.invalidateQueries({ queryKey: ['swipe', 'peek'] });
     },
   });
 };
