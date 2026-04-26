@@ -107,6 +107,45 @@ class TmdbClientTest {
     }
 
     @Nested
+    class GetKeywords {
+
+        @Test
+        void hitsCorrectUrlAndDeserializesKeywords() {
+            mockServer.expect(requestTo("https://api.themoviedb.org/3/movie/278/keywords"))
+                    .andRespond(withSuccess("""
+                            {
+                              "id": 278,
+                              "keywords": [
+                                {"id": 1, "name": "hope"},
+                                {"id": 2, "name": "prison"}
+                              ]
+                            }
+                            """, MediaType.APPLICATION_JSON));
+
+            var result = client.getKeywords(278L);
+
+            assertNotNull(result);
+            assertEquals(278L, result.id());
+            assertEquals(2, result.keywords().length);
+            assertEquals("hope", result.keywords()[0].name());
+            assertEquals("prison", result.keywords()[1].name());
+        }
+
+        @Test
+        void emptyKeywords_returnsEmptyArray() {
+            mockServer.expect(requestTo("https://api.themoviedb.org/3/movie/1/keywords"))
+                    .andRespond(withSuccess("""
+                            {"id": 1, "keywords": []}
+                            """, MediaType.APPLICATION_JSON));
+
+            var result = client.getKeywords(1L);
+
+            assertNotNull(result);
+            assertEquals(0, result.keywords().length);
+        }
+    }
+
+    @Nested
     class GetTopRatedMovies {
 
         @Nested

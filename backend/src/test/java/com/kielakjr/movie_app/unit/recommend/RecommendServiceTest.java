@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentMatchers;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -26,6 +27,7 @@ import org.mockito.InjectMocks;
 
 import java.util.Optional;
 import java.util.List;
+import java.util.Set;
 
 @ExtendWith(MockitoExtension.class)
 public class RecommendServiceTest {
@@ -86,6 +88,35 @@ public class RecommendServiceTest {
             assertThat(recommendations).hasSize(1);
             assertThat(recommendations.get(0).movie().id()).isEqualTo(2L);
             assertThat(recommendations.get(0).reason().id()).isEqualTo(1L);
+        }
+
+        @Test
+        void likedAndDislikedMovies_areBothExcludedFromRecommendations() {
+            Cluster cluster = new Cluster();
+            cluster.addMovieEmbedding(new float[]{0.1f, 0.2f});
+            state.getClusters().add(cluster);
+            state.getLikedMovieIds().add(10L);
+            state.getDislikedMovieIds().add(20L);
+
+            when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of());
+
+            recommendService.getRecommendedMovies(session, 10);
+
+            verify(movieService).findSimilar(any(), anyInt(), ArgumentMatchers.<Set<Long>>argThat(ids -> ids.contains(10L) && ids.contains(20L)));
+        }
+
+        @Test
+        void onlyDislikedMovies_areExcludedWhenNoLikes() {
+            Cluster cluster = new Cluster();
+            cluster.addMovieEmbedding(new float[]{0.1f, 0.2f});
+            state.getClusters().add(cluster);
+            state.getDislikedMovieIds().add(99L);
+
+            when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of());
+
+            recommendService.getRecommendedMovies(session, 10);
+
+            verify(movieService).findSimilar(any(), anyInt(), ArgumentMatchers.<Set<Long>>argThat(ids -> ids.contains(99L)));
         }
 
     }

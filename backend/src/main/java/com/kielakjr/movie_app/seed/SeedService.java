@@ -4,6 +4,8 @@ import com.kielakjr.movie_app.embedding.EmbeddingClient;
 import com.kielakjr.movie_app.tmdb.TmdbClient;
 import com.kielakjr.movie_app.tmdb.TmdbImageUrlBuilder;
 import com.kielakjr.movie_app.tmdb.dto.TmdbGenreListResponse.TmdbGenre;
+import com.kielakjr.movie_app.tmdb.dto.TmdbKeywordsResponse;
+import com.kielakjr.movie_app.tmdb.dto.TmdbMovieResponse;
 import com.kielakjr.movie_app.tmdb.dto.TmdbMovieResponse.TmdbMovie;
 import com.kielakjr.movie_app.movie.Movie;
 import com.kielakjr.movie_app.movie.MovieService;
@@ -18,7 +20,6 @@ import java.util.*;
 import java.util.function.IntFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import com.kielakjr.movie_app.tmdb.dto.TmdbMovieResponse;
 
 @Slf4j
 @Service
@@ -82,9 +83,14 @@ public class SeedService {
 
         Map<Long, float[]> embeddings = new HashMap<>();
         for (Movie movie : saved) {
+            var keywordsResponse = tmdbClient.getKeywords(movie.getTmdbId());
+            var keywords = Arrays.stream(keywordsResponse.keywords())
+                    .map(TmdbKeywordsResponse.TmdbKeyword::name)
+                    .toList();
             String text = movie.getTitle() + ". "
                     + String.join(", ", movie.getGenres()) + ". "
-                    + (movie.getOverview() != null ? movie.getOverview() : "");
+                    + (movie.getOverview() != null ? movie.getOverview() : "")
+                    + " Keywords: " + String.join(", ", keywords);
 
             float[] embedding = embeddingClient.embed(text);
             if (embedding.length > 0) {

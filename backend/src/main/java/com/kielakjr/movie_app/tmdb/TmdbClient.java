@@ -34,4 +34,12 @@ public class TmdbClient {
                 .retrieve()
                 .body(TmdbMovieResponse.class);
     }
+
+    public TmdbKeywordsResponse getKeywords(long movieId) {
+        var response = tmdbRestClient.get()
+                .uri("/movie/{movieId}/keywords", movieId)
+                .retrieve()
+                .body(TmdbKeywordsResponse.class);
+        return response;
+    }
 }
