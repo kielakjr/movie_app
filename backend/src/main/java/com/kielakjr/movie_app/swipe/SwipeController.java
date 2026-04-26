@@ -32,8 +32,9 @@ public class SwipeController {
 
     @GetMapping("/next")
     public ResponseEntity<MovieResponse> getNext(HttpSession httpSession) {
-        var movie = swipeService.getNextFeed(httpSession);
-        return ResponseEntity.ok(movie);
+        return swipeService.getNextFeed(httpSession)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.noContent().build());
     }
 
     @GetMapping("/peek")

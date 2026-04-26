@@ -42,21 +42,21 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void getUnseen_throwsWhenNoDatabaseMovies() throws Exception {
+    void getUnseen_returnsNoContent_whenNoDatabaseMovies() throws Exception {
         jdbcTemplate.execute("DELETE FROM movies");
 
         mockMvc.perform(get("/api/swipe/next").session(session))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isNoContent());
     }
 
     @Test
-    void getUnseen_throwsWhenAllMoviesHaveBeenSwiped() throws Exception {
+    void getUnseen_returnsNoContent_whenAllMoviesHaveBeenSwiped() throws Exception {
         for (long id : allMovieIds()) {
             swipe(session, id, "SKIP");
         }
 
         mockMvc.perform(get("/api/swipe/next").session(session))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isNoContent());
     }
 
     @Test
@@ -108,7 +108,7 @@ class SwipeIntegrationTest extends BaseIntegrationTest {
         }
 
         mockMvc.perform(get("/api/swipe/next").session(sessionA))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/swipe/next").session(sessionB))
                 .andExpect(status().isOk())

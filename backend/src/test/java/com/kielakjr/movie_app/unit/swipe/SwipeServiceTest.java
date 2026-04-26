@@ -27,7 +27,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class SwipeServiceTest {
@@ -207,15 +206,18 @@ class SwipeServiceTest {
 
             var response = swipeService.getNextFeed(session);
 
-            assertThat(response.id()).isEqualTo(42L);
-            assertThat(response.title()).isEqualTo("Title 42");
+            assertThat(response).isPresent();
+            assertThat(response.get().id()).isEqualTo(42L);
+            assertThat(response.get().title()).isEqualTo("Title 42");
         }
 
         @Test
-        void noMoreMovies_throwsException() {
+        void noMoreMovies_returnsEmpty() {
             when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
 
-            assertThrows(RuntimeException.class, () -> swipeService.getNextFeed(session));
+            var response = swipeService.getNextFeed(session);
+
+            assertThat(response).isEmpty();
         }
     }
 

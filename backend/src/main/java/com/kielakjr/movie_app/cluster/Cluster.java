@@ -1,19 +1,17 @@
 package com.kielakjr.movie_app.cluster;
 
-import org.springframework.stereotype.Component;
-
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.ArrayList;
 
-@Component
 @Getter
 @NoArgsConstructor
-@Slf4j
-public class Cluster {
+public class Cluster implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private List<float[]> movieEmbeddings = new ArrayList<>();
     private float[] centroid;
 

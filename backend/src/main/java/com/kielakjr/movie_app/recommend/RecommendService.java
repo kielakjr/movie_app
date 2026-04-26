@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,8 +27,8 @@ public class RecommendService {
         if (state.getClusters().isEmpty()) {
             throw new IllegalStateException("User embedding not set");
         }
-        var seenMovieIds = state.getLikedMovieIds();
-        var dislikedMovieIds = state.getDislikedMovieIds();
+        var seenMovieIds = new HashSet<>(state.getLikedMovieIds());
+        var dislikedMovieIds = new HashSet<>(state.getDislikedMovieIds());
         seenMovieIds.addAll(dislikedMovieIds);
         List<RecommendMovie> recommendations = new ArrayList<>();
         int perClusterLimit = state.getClusters().size() * 5 < limit ? (int) Math.ceil((float) limit / state.getClusters().size()) : 5;
