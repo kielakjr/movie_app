@@ -41,7 +41,7 @@ const Swipe = () => {
     });
   };
 
-  const ResetButton = () => (
+  const resetButton = (
     <button
       className="swipe-reset-btn"
       onClick={handleReset}
@@ -58,7 +58,7 @@ const Swipe = () => {
       <span className="swipe-done-icon">🎬</span>
       <p>You've seen all movies!</p>
       <p className="swipe-done-sub">Check back later for new additions.</p>
-      <ResetButton />
+      {resetButton}
     </div>
   );
   if (current === null) return (
@@ -66,7 +66,7 @@ const Swipe = () => {
       <span className="swipe-done-icon">🎬</span>
       <p>You've seen all movies!</p>
       <p className="swipe-done-sub">Check back later for new additions.</p>
-      <ResetButton />
+      {resetButton}
     </div>
   );
   if (!effectiveCurrent) return null;
@@ -152,7 +152,7 @@ const Swipe = () => {
     <>
       <div className="swipe-page">
         <div className="swipe-header">
-          <ResetButton />
+          {resetButton}
         </div>
         <div className="swipe-stack">
           <div
