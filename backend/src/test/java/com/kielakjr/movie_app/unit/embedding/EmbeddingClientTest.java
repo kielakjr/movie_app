@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Offset.offset;
@@ -33,6 +34,17 @@ class EmbeddingClientTest {
 
     private void registerHandler(int status, String body) {
         server.createContext("/embedding", exchange -> {
+            byte[] bytes = body.getBytes();
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(status, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        });
+    }
+
+    private void registerBatchHandler(int status, String body) {
+        server.createContext("/embedding/batch", exchange -> {
             byte[] bytes = body.getBytes();
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(status, bytes.length);
@@ -91,6 +103,36 @@ class EmbeddingClientTest {
             EmbeddingClient badClient = new EmbeddingClient("http://localhost:1");
 
             assertThat(badClient.embed("some text")).isEmpty();
+        }
+    }
+
+    @Nested
+    class BatchEmbedding {
+
+        @Test
+        void success_returnsListOfFloatArrays() {
+            registerBatchHandler(200, """
+                    {"embeddings": [[0.1, 0.2], [0.3, 0.4]]}
+                    """);
+
+            var result = client.embedBatch(List.of("a", "b"));
+
+            assertThat(result).hasSize(2);
+            assertThat(result.get(0)).hasSize(2);
+            assertThat(result.get(0)[0]).isCloseTo(0.1f, offset(0.0001f));
+            assertThat(result.get(1)[1]).isCloseTo(0.4f, offset(0.0001f));
+        }
+
+        @Test
+        void emptyInput_returnsEmptyListWithoutCallingService() {
+            assertThat(client.embedBatch(List.of())).isEmpty();
+        }
+
+        @Test
+        void serverError_returnsEmptyList() {
+            registerBatchHandler(500, "Internal Server Error");
+
+            assertThat(client.embedBatch(List.of("a"))).isEmpty();
         }
     }
 }

@@ -76,7 +76,7 @@ class SeedServiceTest {
                 when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
                 when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 101L, "Mad Max")));
                 when(tmdbClient.getKeywords(101L)).thenReturn(emptyKeywords());
-                when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f});
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[]{0.1f}));
 
                 assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
                 verify(movieService).saveAll(argThat(list -> list.size() == 1));
@@ -102,7 +102,7 @@ class SeedServiceTest {
                 when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
                 when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 99L, "Film")));
                 when(tmdbClient.getKeywords(99L)).thenReturn(emptyKeywords());
-                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0]));
 
                 assertThat(seedService.seedPopularMovies(2)).isEqualTo(1);
                 verify(movieService).saveAll(argThat(list -> list.size() == 1));
@@ -121,7 +121,7 @@ class SeedServiceTest {
                 when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
                 when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(10L, 1L, "Film")));
                 when(tmdbClient.getKeywords(1L)).thenReturn(emptyKeywords());
-                when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f, 0.2f});
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[]{0.1f, 0.2f}));
 
                 seedService.seedPopularMovies(1);
 
@@ -137,7 +137,7 @@ class SeedServiceTest {
                 when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
                 when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(2L, 2L, "No Embed")));
                 when(tmdbClient.getKeywords(2L)).thenReturn(emptyKeywords());
-                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0]));
 
                 assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
                 verify(movieService, never()).batchUpdateEmbeddings(any());
@@ -153,12 +153,14 @@ class SeedServiceTest {
                 when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(50L, 5L, "Inception")));
                 when(tmdbClient.getKeywords(5L)).thenReturn(keywords("dream", "heist"));
 
-                ArgumentCaptor<String> textCaptor = ArgumentCaptor.forClass(String.class);
-                when(embeddingClient.embed(textCaptor.capture())).thenReturn(new float[]{0.1f});
+                @SuppressWarnings("unchecked")
+                ArgumentCaptor<List<String>> textCaptor = ArgumentCaptor.forClass(List.class);
+                when(embeddingClient.embedBatch(textCaptor.capture())).thenReturn(List.of(new float[]{0.1f}));
 
                 seedService.seedPopularMovies(1);
 
-                assertThat(textCaptor.getValue()).contains("Keywords:").contains("dream").contains("heist");
+                assertThat(textCaptor.getValue()).hasSize(1);
+                assertThat(textCaptor.getValue().get(0)).contains("Keywords:").contains("dream").contains("heist");
             }
         }
 
@@ -173,7 +175,7 @@ class SeedServiceTest {
                 when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
                 when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
                 when(tmdbClient.getKeywords(77L)).thenReturn(emptyKeywords());
-                when(embeddingClient.embed(any())).thenReturn(new float[]{0.1f});
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[]{0.1f}));
 
                 ArgumentCaptor<List<Movie>> captor = ArgumentCaptor.forClass(List.class);
                 when(movieService.saveAll(captor.capture())).thenReturn(List.of(savedMovie(3L, 77L, "Mystery")));
@@ -192,7 +194,7 @@ class SeedServiceTest {
                 when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
                 when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 1L, "No Date")));
                 when(tmdbClient.getKeywords(1L)).thenReturn(emptyKeywords());
-                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0]));
 
                 assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
             }
@@ -206,7 +208,7 @@ class SeedServiceTest {
                 when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
                 when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(2L, 2L, "Bad Date")));
                 when(tmdbClient.getKeywords(2L)).thenReturn(emptyKeywords());
-                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0]));
 
                 assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
             }
@@ -225,7 +227,7 @@ class SeedServiceTest {
                 when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
                 when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 1L, "A"), savedMovie(2L, 2L, "B")));
                 when(tmdbClient.getKeywords(anyLong())).thenReturn(emptyKeywords());
-                when(embeddingClient.embed(any())).thenReturn(new float[0]);
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0], new float[0]));
 
                 assertThat(seedService.seedPopularMovies(2)).isEqualTo(2);
                 verify(tmdbClient).getPopularMovies(1);
@@ -246,7 +248,7 @@ class SeedServiceTest {
             when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
             when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 200L, "Godfather")));
             when(tmdbClient.getKeywords(200L)).thenReturn(emptyKeywords());
-            when(embeddingClient.embed(any())).thenReturn(new float[0]);
+            when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0]));
 
             seedService.seedTopRatedMovies(1);
 
@@ -263,7 +265,7 @@ class SeedServiceTest {
             when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
             when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 300L, "Shawshank")));
             when(tmdbClient.getKeywords(300L)).thenReturn(emptyKeywords());
-            when(embeddingClient.embed(any())).thenReturn(new float[]{0.5f});
+            when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[]{0.5f}));
 
             assertThat(seedService.seedTopRatedMovies(1)).isEqualTo(1);
         }
@@ -288,7 +290,7 @@ class SeedServiceTest {
             when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
             when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 1L, "A"), savedMovie(2L, 2L, "B")));
             when(tmdbClient.getKeywords(anyLong())).thenReturn(emptyKeywords());
-            when(embeddingClient.embed(any())).thenReturn(new float[0]);
+            when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0], new float[0]));
 
             assertThat(seedService.seedTopRatedMovies(2)).isEqualTo(2);
             verify(tmdbClient).getTopRatedMovies(1);
@@ -304,7 +306,7 @@ class SeedServiceTest {
             when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
             when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(50L, 5L, "Citizen Kane")));
             when(tmdbClient.getKeywords(5L)).thenReturn(emptyKeywords());
-            when(embeddingClient.embed(any())).thenReturn(new float[]{0.9f});
+            when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[]{0.9f}));
 
             seedService.seedTopRatedMovies(1);
 
@@ -321,7 +323,7 @@ class SeedServiceTest {
             when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
             when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 99L, "Dup")));
             when(tmdbClient.getKeywords(99L)).thenReturn(emptyKeywords());
-            when(embeddingClient.embed(any())).thenReturn(new float[0]);
+            when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0]));
 
             assertThat(seedService.seedTopRatedMovies(2)).isEqualTo(1);
             verify(movieService).saveAll(argThat(list -> list.size() == 1));

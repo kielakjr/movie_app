@@ -81,7 +81,7 @@ public class SeedService {
 
         List<Movie> saved = movieService.saveAll(toSave);
 
-        Map<Long, float[]> embeddings = new HashMap<>();
+        List<String> texts = new ArrayList<>(saved.size());
         for (Movie movie : saved) {
             var keywordsResponse = tmdbClient.getKeywords(movie.getTmdbId());
             var keywords = Arrays.stream(keywordsResponse.keywords())
@@ -91,11 +91,20 @@ public class SeedService {
                     + String.join(", ", movie.getGenres()) + ". "
                     + (movie.getOverview() != null ? movie.getOverview() : "")
                     + " Keywords: " + String.join(", ", keywords);
+            texts.add(text);
+        }
 
-            float[] embedding = embeddingClient.embed(text);
-            if (embedding.length > 0) {
-                embeddings.put(movie.getId(), embedding);
+        List<float[]> batchEmbeddings = embeddingClient.embedBatch(texts);
+        Map<Long, float[]> embeddings = new HashMap<>();
+        if (batchEmbeddings.size() == saved.size()) {
+            for (int i = 0; i < saved.size(); i++) {
+                float[] embedding = batchEmbeddings.get(i);
+                if (embedding.length > 0) {
+                    embeddings.put(saved.get(i).getId(), embedding);
+                }
             }
+        } else {
+            log.error("Batch embedding size mismatch: expected {}, got {}", saved.size(), batchEmbeddings.size());
         }
 
         if (!embeddings.isEmpty()) {

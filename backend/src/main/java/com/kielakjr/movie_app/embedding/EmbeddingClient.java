@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -21,9 +22,11 @@ public class EmbeddingClient {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final String embeddingUrl;
+    private final String batchEmbeddingUrl;
 
     public EmbeddingClient(@Value("${embedding.base-url}") String baseUrl) {
         this.embeddingUrl = baseUrl + "/embedding";
+        this.batchEmbeddingUrl = baseUrl + "/embedding/batch";
     }
 
     public float[] embed(String text) {
@@ -51,6 +54,38 @@ public class EmbeddingClient {
         }
     }
 
+    public List<float[]> embedBatch(List<String> texts) {
+        if (texts.isEmpty()) {
+            return List.of();
+        }
+        try {
+            String body = OBJECT_MAPPER.writeValueAsString(Map.of("texts", texts));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(batchEmbeddingUrl))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                log.error("Embedding batch service error {}: {}", response.statusCode(), response.body());
+                return List.of();
+            }
+
+            BatchEmbedResponse parsed = OBJECT_MAPPER.readValue(response.body(), BatchEmbedResponse.class);
+            List<float[]> result = new ArrayList<>(parsed.embeddings().size());
+            for (List<Double> embedding : parsed.embeddings()) {
+                result.add(toFloatArray(embedding));
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("Failed to get batch embeddings: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
     private static float[] toFloatArray(List<Double> doubles) {
         float[] arr = new float[doubles.size()];
         for (int i = 0; i < doubles.size(); i++) arr[i] = doubles.get(i).floatValue();
@@ -58,4 +93,6 @@ public class EmbeddingClient {
     }
 
     record EmbedResponse(List<Double> embedding) {}
+
+    record BatchEmbedResponse(List<List<Double>> embeddings) {}
 }
