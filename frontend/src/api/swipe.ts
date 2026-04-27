@@ -11,20 +11,15 @@ export const fetchNextSwipeMovie = async (): Promise<Movie> => {
   return response.json();
 };
 
-export const fetchPeekMovie = async (excludeId: number): Promise<Movie | null> => {
-  const response = await fetchWithCreds(`/api/swipe/peek?excludeId=${excludeId}`);
-  if (response.status === 204) return null;
-  if (!response.ok) return null;
-  return response.json();
-};
-
-export const postSwipe = async (movieId: number, action: SwipeAction): Promise<void> => {
+export const postSwipe = async (movieId: number, action: SwipeAction): Promise<Movie | null> => {
   const response = await fetchWithCreds('/api/swipe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ movie_id: movieId, action }),
   });
+  if (response.status === 204) return null;
   if (!response.ok) {
     throw new Error('Failed to swipe');
   }
+  return response.json();
 };

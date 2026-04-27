@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useNextSwipeMovie, usePeekMovie, useSwipe, useRecommendations } from '../hooks';
+import { useNextSwipeMovie, useSwipe, useRecommendations } from '../hooks';
 import type { Movie } from '../types';
 import RecommendationsModal from '../components/RecommendationsModal';
 
@@ -21,20 +21,11 @@ const Swipe = () => {
   const [current, setCurrent] = useState<Movie | null | undefined>(undefined);
   const effectiveCurrent = current === undefined ? (initialMovie ?? null) : current;
 
-  const { data: fetchedPeek, isFetching: peekFetching } = usePeekMovie(effectiveCurrent?.id, !swipePending);
-  const peekIsTrustworthy = !swipePending && !peekFetching;
-  const effectivePeek = peekIsTrustworthy && fetchedPeek?.id !== effectiveCurrent?.id
-    ? (fetchedPeek ?? null)
-    : null;
-
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const pendingAction = useRef<{
-    action: 'LIKE' | 'DISLIKE' | 'SKIP';
-    movieId: number;
-    nextMovie: Movie | null;
-  } | null>(null);
+  const animationDoneRef = useRef(false);
+  const pendingNextRef = useRef<{ next: Movie | null } | null>(null);
 
-  const canSwipe = !flying && !swipePending && peekIsTrustworthy;
+  const canSwipe = !flying && !swipePending;
 
   if (isLoading) return <div className="state-center">Loading...</div>;
   if (error || (!isLoading && !initialMovie)) return (
@@ -56,39 +47,42 @@ const Swipe = () => {
   const year = effectiveCurrent.release_date?.slice(0, 4);
   const rating = effectiveCurrent.vote_average ? effectiveCurrent.vote_average.toFixed(1) : null;
 
-  const doSwipe = (movieId: number, action: 'LIKE' | 'DISLIKE' | 'SKIP') => {
-    swipe({ movieId, action }, {
-      onSuccess: () => {
+  const commitNext = (nextMovie: Movie | null) => {
+    setCurrent(nextMovie);
+    setFlying(null);
+  };
+
+  const launchCard = (dir: 'left' | 'right' | 'skip', action: 'LIKE' | 'DISLIKE' | 'SKIP') => {
+    if (!canSwipe) return;
+    animationDoneRef.current = false;
+    pendingNextRef.current = null;
+    setFlying(dir);
+    setDrag({ x: 0, y: 0 });
+    swipe({ movieId: effectiveCurrent.id, action }, {
+      onSuccess: (nextMovie) => {
         if (action === 'LIKE') {
-          const next = likesCount + 1;
-          setLikesCount(next);
-          if (next % RECS_EVERY_N_LIKES === 0) {
+          const count = likesCount + 1;
+          setLikesCount(count);
+          if (count % RECS_EVERY_N_LIKES === 0) {
             fetchRecs();
             setShowRecs(true);
           }
+        }
+        if (animationDoneRef.current) {
+          commitNext(nextMovie);
+        } else {
+          pendingNextRef.current = { next: nextMovie };
         }
       },
     });
   };
 
-  const launchCard = (dir: 'left' | 'right' | 'skip', action: 'LIKE' | 'DISLIKE' | 'SKIP') => {
-    if (!canSwipe) return;
-    pendingAction.current = {
-      action,
-      movieId: effectiveCurrent.id,
-      nextMovie: effectivePeek,
-    };
-    setFlying(dir);
-    setDrag({ x: 0, y: 0 });
-  };
-
   const handleAnimationEnd = () => {
-    const pending = pendingAction.current;
-    pendingAction.current = null;
-    setFlying(null);
+    animationDoneRef.current = true;
+    const pending = pendingNextRef.current;
     if (pending) {
-      setCurrent(pending.nextMovie); // snapshot taken before swipe fired
-      doSwipe(pending.movieId, pending.action);
+      pendingNextRef.current = null;
+      commitNext(pending.next);
     }
   };
 
@@ -131,17 +125,8 @@ const Swipe = () => {
     <>
       <div className="swipe-page">
         <div className="swipe-stack">
-          {effectivePeek && (
-            <div className="swipe-card swipe-card-peek" aria-hidden>
-              {effectivePeek.poster_path ? (
-                <img className="swipe-poster" src={effectivePeek.poster_path} alt={effectivePeek.title} draggable={false} />
-              ) : (
-                <div className="swipe-poster-placeholder" />
-              )}
-            </div>
-          )}
-
           <div
+            key={effectiveCurrent.id}
             className={`swipe-card${flying ? ` swipe-fly-${flying}` : ''}`}
             style={cardStyle}
             onPointerDown={onPointerDown}
