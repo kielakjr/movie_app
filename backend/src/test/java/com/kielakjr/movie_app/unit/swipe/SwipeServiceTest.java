@@ -263,50 +263,34 @@ class SwipeServiceTest {
     }
 
     @Nested
-    class PeekNextFeed {
+    class SwipeReturnsNextMovie {
 
         @Test
-        void returnsMovieExcludingGivenId() {
+        void returnsNextUnseenMovieAfterSwipe() {
             when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(99L)));
 
-            var result = swipeService.peekNextFeed(session, 42L);
+            var result = swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
 
             assertThat(result).isPresent();
             assertThat(result.get().id()).isEqualTo(99L);
         }
 
         @Test
-        void excludeIdIsAddedToSeenIds_withoutMutatingSessionState() {
+        void excludesJustSwipedMovieFromNext() {
             when(movieService.getUnseenMovie(any())).thenAnswer(invocation -> {
                 Set<Long> excluded = invocation.getArgument(0);
                 assertThat(excluded).contains(42L);
                 return Optional.of(createMovieResponse(99L));
             });
 
-            swipeService.peekNextFeed(session, 42L);
-
-            assertThat(state.getSeenMovieIds()).doesNotContain(42L);
-        }
-
-        @Test
-        void existingSeenIdsAreAlsoExcluded() {
-            state.getSeenMovieIds().add(10L);
-            state.getSeenMovieIds().add(11L);
-
-            when(movieService.getUnseenMovie(any())).thenAnswer(invocation -> {
-                Set<Long> excluded = invocation.getArgument(0);
-                assertThat(excluded).containsAll(List.of(10L, 11L, 42L));
-                return Optional.of(createMovieResponse(99L));
-            });
-
-            swipeService.peekNextFeed(session, 42L);
+            swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
         }
 
         @Test
         void returnsEmptyWhenNoMovieAvailable() {
             when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
 
-            var result = swipeService.peekNextFeed(session, 42L);
+            var result = swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
 
             assertThat(result).isEmpty();
         }

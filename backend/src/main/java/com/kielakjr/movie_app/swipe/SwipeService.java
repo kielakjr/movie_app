@@ -21,7 +21,7 @@ public class SwipeService {
     private static final float EXPLORATION_RATE = 0.2f;
     private static final float DISLIKE_EXPLOITATION_RATE = 0.15f;
 
-    public void swipe(SwipeRequest request, HttpSession httpSession) {
+    public Optional<MovieResponse> swipe(SwipeRequest request, HttpSession httpSession) {
         var state = sessionService.getState(httpSession);
 
         switch (request.action()) {
@@ -44,21 +44,15 @@ public class SwipeService {
             }
             case SKIP -> state.getSeenMovieIds().add(request.movieId());
         }
+
+        var excludeIds = new HashSet<>(state.getSeenMovieIds());
+        return getNextMovie(httpSession, excludeIds);
     }
 
     public Optional<MovieResponse> getNextFeed(HttpSession httpSession) {
         var state = sessionService.getState(httpSession);
         var excludeIds = new HashSet<>(state.getSeenMovieIds());
-        var result = getNextMovie(httpSession, excludeIds);
-        return result;
-    }
-
-    public Optional<MovieResponse> peekNextFeed(HttpSession httpSession, Long excludeId) {
-        var state = sessionService.getState(httpSession);
-        var excludeIds = new HashSet<>(state.getSeenMovieIds());
-        excludeIds.add(excludeId);
-        var result = getNextMovie(httpSession, excludeIds);
-        return result;
+        return getNextMovie(httpSession, excludeIds);
     }
 
     private Optional<MovieResponse> getNextMovie(HttpSession httpSession, Set<Long> excludeIds) {

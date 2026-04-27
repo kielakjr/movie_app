@@ -4,7 +4,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,27 +21,18 @@ public class SwipeController {
     private final SwipeService swipeService;
 
     @PostMapping
-    public ResponseEntity<Void> swipe(
+    public ResponseEntity<MovieResponse> swipe(
         @RequestBody @Valid SwipeRequest request,
         HttpSession httpSession
     ) {
-        swipeService.swipe(request, httpSession);
-        return ResponseEntity.ok().build();
+        return swipeService.swipe(request, httpSession)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.noContent().build());
     }
 
     @GetMapping("/next")
     public ResponseEntity<MovieResponse> getNext(HttpSession httpSession) {
         return swipeService.getNextFeed(httpSession)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.noContent().build());
-    }
-
-    @GetMapping("/peek")
-    public ResponseEntity<MovieResponse> peek(
-        @RequestParam Long excludeId,
-        HttpSession httpSession
-    ) {
-        return swipeService.peekNextFeed(httpSession, excludeId)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.noContent().build());
     }

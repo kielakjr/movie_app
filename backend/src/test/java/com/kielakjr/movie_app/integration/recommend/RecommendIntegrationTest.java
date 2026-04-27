@@ -188,7 +188,7 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"movie_id\": %d, \"action\": \"LIKE\"}".formatted(movieId)))
-                .andExpect(status().isOk());
+                .andExpect(status().is2xxSuccessful());
     }
 
     private void swipeSkip(long movieId) throws Exception {
@@ -196,7 +196,7 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"movie_id\": %d, \"action\": \"SKIP\"}".formatted(movieId)))
-                .andExpect(status().isOk());
+                .andExpect(status().is2xxSuccessful());
     }
 
     private long getMovieId(long tmdbId) {
