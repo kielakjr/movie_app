@@ -14,5 +14,6 @@ public class SwipeSessionState implements Serializable {
     private Set<Long> dislikedMovieIds = new HashSet<>();
     private Set<Long> likedMovieIds = new HashSet<>();
     private List<Cluster> clusters = new ArrayList<>();
+    private List<Cluster> dislikedClusters = new ArrayList<>();
     private int likesCount = 0;
 }

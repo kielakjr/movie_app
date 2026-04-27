@@ -1,10 +1,11 @@
 package com.kielakjr.movie_app.unit.swipe;
 
-import com.kielakjr.movie_app.movie.dto.MovieResponse;
+import com.kielakjr.movie_app.cluster.Cluster;
+import com.kielakjr.movie_app.cluster.ClusterService;
 import com.kielakjr.movie_app.movie.MovieService;
+import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import com.kielakjr.movie_app.session.SessionService;
 import com.kielakjr.movie_app.session.SwipeSessionState;
-import com.kielakjr.movie_app.cluster.ClusterService;
 import com.kielakjr.movie_app.swipe.SwipeService;
 import com.kielakjr.movie_app.swipe.dto.SwipeAction;
 import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
@@ -16,14 +17,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpSession;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,7 +60,8 @@ class SwipeServiceTest {
     }
 
     private MovieResponse createMovieResponse(Long id) {
-        return new MovieResponse(id, 100L + id, "Title " + id, "Overview " + id, "2024-01-01", "en", false, "/poster" + id + ".jpg", "/backdrop" + id + ".jpg", new String[]{"Genre1", "Genre2"}, 10.0, 8.0, 100);
+        return new MovieResponse(id, 100L + id, "Title " + id, "Overview " + id, "2024-01-01", "en",
+                false, "/poster" + id + ".jpg", "/backdrop" + id + ".jpg", new String[]{"Genre1", "Genre2"}, 10.0, 8.0, 100);
     }
 
     @Nested
@@ -157,10 +164,44 @@ class SwipeServiceTest {
             }
 
             @Test
-            void doesNotCallClusterService() {
+            void whenEmbeddingIsNull_doesNotCallClusterService() {
+                when(movieService.getEmbeddingById(42L)).thenReturn(null);
+
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
 
                 verify(clusterService, never()).addToClusters(any(), any());
+            }
+
+            @Nested
+            class WithEmbedding {
+
+                private static final float[] MOVIE_EMBEDDING = {0.5f, 0.8f};
+
+                @BeforeEach
+                void setUp() {
+                    when(movieService.getEmbeddingById(any())).thenReturn(MOVIE_EMBEDDING);
+                }
+
+                @Test
+                void addsToDislikedClusters() {
+                    swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+
+                    verify(clusterService).addToClusters(eq(MOVIE_EMBEDDING), eq(state.getDislikedClusters()));
+                }
+
+                @Test
+                void doesNotAddToLikedClusters() {
+                    swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+
+                    verify(clusterService, never()).addToClusters(any(), same(state.getClusters()));
+                }
+
+                @Test
+                void fetchesEmbeddingByMovieId() {
+                    swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
+
+                    verify(movieService).getEmbeddingById(42L);
+                }
             }
         }
 
@@ -268,6 +309,68 @@ class SwipeServiceTest {
             var result = swipeService.peekNextFeed(session, 42L);
 
             assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    class DislikeExploitation {
+
+        private static final float[] CENTROID = {0.5f, 0.5f};
+        private SwipeService spyService;
+
+        @BeforeEach
+        void setUp() {
+            Cluster dislikedCluster = new Cluster();
+            dislikedCluster.addMovieEmbedding(CENTROID);
+            state.getDislikedClusters().add(dislikedCluster);
+            spyService = spy(swipeService);
+        }
+
+        @Test
+        void whenRandBelowDislikeExploitationRate_callsFindLeastSimilar() {
+            doReturn(0.05, 0.0).when(spyService).nextRandom();
+            when(movieService.findLeastSimilar(any(), anyInt(), any()))
+                    .thenReturn(List.of(createMovieResponse(55L)));
+
+            var result = spyService.getNextFeed(session);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().id()).isEqualTo(55L);
+            verify(movieService).findLeastSimilar(any(), eq(1), any());
+        }
+
+        @Test
+        void whenFindLeastSimilarReturnsEmpty_fallsBackToUnseen() {
+            doReturn(0.05, 0.0).when(spyService).nextRandom();
+            when(movieService.findLeastSimilar(any(), anyInt(), any())).thenReturn(List.of());
+            when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(77L)));
+
+            var result = spyService.getNextFeed(session);
+
+            assertThat(result.get().id()).isEqualTo(77L);
+            verify(movieService).getUnseenMovie(any());
+        }
+
+        @Test
+        void whenRandAboveDislikeExploitationRate_skipsToUnseen() {
+            doReturn(0.17).when(spyService).nextRandom();
+            when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
+
+            spyService.getNextFeed(session);
+
+            verify(movieService, never()).findLeastSimilar(any(), anyInt(), any());
+            verify(movieService).getUnseenMovie(any());
+        }
+
+        @Test
+        void whenDislikedClustersEmpty_skipsDislikeExploitation() {
+            state.getDislikedClusters().clear();
+            doReturn(0.05).when(spyService).nextRandom();
+            when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
+
+            spyService.getNextFeed(session);
+
+            verify(movieService, never()).findLeastSimilar(any(), anyInt(), any());
         }
     }
 }

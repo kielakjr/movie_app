@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.eq;
@@ -159,6 +160,63 @@ class MovieServiceTest {
             verify(movieRepository).findUnseen(eq(Set.of(101L, 102L)), any());
         }
 
+    }
+
+    @Nested
+    class FindLeastSimilar {
+
+        private Movie buildMovie(long id) {
+            return Movie.builder()
+                    .id(id).tmdbId(id * 10).title("Movie " + id)
+                    .overview("Overview").adult(false)
+                    .genres(List.of()).popularity(3.0)
+                    .voteAverage(5.0).voteCount(100)
+                    .build();
+        }
+
+        @Test
+        void withEmptySeenIds_callsRepositoryWithEmptySet() {
+            float[] embedding = {0.1f, 0.2f};
+            when(movieRepository.findLeastSimilarExcluding(any(), anyInt(), any())).thenReturn(List.of());
+
+            movieService.findLeastSimilar(embedding, 5, Set.of());
+
+            verify(movieRepository).findLeastSimilarExcluding("[0.1,0.2]", 5, Set.of());
+        }
+
+        @Test
+        void withNonEmptySeenIds_passesSeenIdsToRepository() {
+            float[] embedding = {0.3f, 0.4f};
+            Set<Long> seenIds = Set.of(1L, 2L);
+            when(movieRepository.findLeastSimilarExcluding(any(), anyInt(), any())).thenReturn(List.of());
+
+            movieService.findLeastSimilar(embedding, 3, seenIds);
+
+            verify(movieRepository).findLeastSimilarExcluding("[0.3,0.4]", 3, seenIds);
+        }
+
+        @Test
+        void mapsRepositoryResultToDto() {
+            float[] embedding = {0.1f, 0.2f};
+            Movie movie = buildMovie(7L);
+            when(movieRepository.findLeastSimilarExcluding(any(), anyInt(), any())).thenReturn(List.of(movie));
+
+            var result = movieService.findLeastSimilar(embedding, 1, Set.of(1L));
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).id()).isEqualTo(7L);
+            assertThat(result.get(0).title()).isEqualTo("Movie 7");
+        }
+
+        @Test
+        void returnsEmptyWhenRepositoryFindsNothing() {
+            float[] embedding = {0.1f, 0.2f};
+            when(movieRepository.findLeastSimilarExcluding(any(), anyInt(), any())).thenReturn(List.of());
+
+            var result = movieService.findLeastSimilar(embedding, 5, Set.of(10L));
+
+            assertThat(result).isEmpty();
+        }
     }
 
     @Nested
