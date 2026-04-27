@@ -15,4 +15,8 @@ public class SessionService {
         }
         return state;
     }
+
+    public void reset(HttpSession session) {
+        session.setAttribute(KEY, new SwipeSessionState());
+    }
 }

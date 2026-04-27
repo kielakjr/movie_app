@@ -20,6 +20,36 @@ class SessionServiceTest {
     }
 
     @Nested
+    class Reset {
+        @Test
+        void clearsExistingState() {
+            var state = sessionService.getState(session);
+            state.getSeenMovieIds().add(1L);
+            state.getLikedMovieIds().add(2L);
+            state.getDislikedMovieIds().add(3L);
+            state.setLikesCount(5);
+
+            sessionService.reset(session);
+
+            var fresh = sessionService.getState(session);
+            assertThat(fresh.getSeenMovieIds()).isEmpty();
+            assertThat(fresh.getLikedMovieIds()).isEmpty();
+            assertThat(fresh.getDislikedMovieIds()).isEmpty();
+            assertThat(fresh.getClusters()).isEmpty();
+            assertThat(fresh.getDislikedClusters()).isEmpty();
+            assertThat(fresh.getLikesCount()).isZero();
+        }
+
+        @Test
+        void onFreshSession_doesNotThrow() {
+            sessionService.reset(session);
+
+            var state = sessionService.getState(session);
+            assertThat(state.getSeenMovieIds()).isEmpty();
+        }
+    }
+
+    @Nested
     class GetState {
         @Test
         void shouldReturnEmptyCollectionsForNewSession() {
