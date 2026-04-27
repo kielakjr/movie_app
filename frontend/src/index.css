@@ -512,6 +512,36 @@ body {
   color: var(--text-muted);
 }
 
+.swipe-header {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 4px;
+  margin-bottom: 12px;
+}
+
+.swipe-reset-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--text-muted);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.swipe-reset-btn:hover:not(:disabled) {
+  color: #fff;
+  border-color: #fff;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.swipe-reset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 480px) {
   .swipe-stack {
     width: 100%;

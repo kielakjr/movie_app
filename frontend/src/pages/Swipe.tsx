@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useNextSwipeMovie, useSwipe, useRecommendations } from '../hooks';
+import { useNextSwipeMovie, useSwipe, useRecommendations, useResetSession } from '../hooks';
 import type { Movie } from '../types';
 import RecommendationsModal from '../components/RecommendationsModal';
 
@@ -11,6 +11,7 @@ const Swipe = () => {
   const { data: initialMovie, isLoading, error } = useNextSwipeMovie();
   const { mutate: swipe, isPending: swipePending } = useSwipe();
   const { data: recommendations, isFetching: recsFetching, refetch: fetchRecs } = useRecommendations(5);
+  const { mutate: resetSession, isPending: resetPending } = useResetSession();
 
   const [likesCount, setLikesCount] = useState(0);
   const [showRecs, setShowRecs] = useState(false);
@@ -25,7 +26,31 @@ const Swipe = () => {
   const animationDoneRef = useRef(false);
   const pendingNextRef = useRef<{ next: Movie | null } | null>(null);
 
-  const canSwipe = !flying && !swipePending;
+  const canSwipe = !flying && !swipePending && !resetPending;
+
+  const handleReset = () => {
+    if (resetPending) return;
+    resetSession(undefined, {
+      onSuccess: () => {
+        setCurrent(undefined);
+        setLikesCount(0);
+        setShowRecs(false);
+        setDrag({ x: 0, y: 0 });
+        setFlying(null);
+      },
+    });
+  };
+
+  const ResetButton = () => (
+    <button
+      className="swipe-reset-btn"
+      onClick={handleReset}
+      disabled={resetPending}
+      title="Reset session"
+    >
+      {resetPending ? 'Resetting…' : 'Reset session'}
+    </button>
+  );
 
   if (isLoading) return <div className="state-center">Loading...</div>;
   if (error || (!isLoading && !initialMovie)) return (
@@ -33,6 +58,7 @@ const Swipe = () => {
       <span className="swipe-done-icon">🎬</span>
       <p>You've seen all movies!</p>
       <p className="swipe-done-sub">Check back later for new additions.</p>
+      <ResetButton />
     </div>
   );
   if (current === null) return (
@@ -40,6 +66,7 @@ const Swipe = () => {
       <span className="swipe-done-icon">🎬</span>
       <p>You've seen all movies!</p>
       <p className="swipe-done-sub">Check back later for new additions.</p>
+      <ResetButton />
     </div>
   );
   if (!effectiveCurrent) return null;
@@ -124,6 +151,9 @@ const Swipe = () => {
   return (
     <>
       <div className="swipe-page">
+        <div className="swipe-header">
+          <ResetButton />
+        </div>
         <div className="swipe-stack">
           <div
             key={effectiveCurrent.id}
