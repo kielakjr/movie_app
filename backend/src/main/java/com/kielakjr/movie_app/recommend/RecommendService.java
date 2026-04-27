@@ -48,16 +48,31 @@ public class RecommendService {
         if (similarMovies.isEmpty()) {
             return List.of();
         }
-        var reasonMovie = movieService.getMovieByEmbedding(cluster.getCentroid()).orElse(null);
-        if (reasonMovie == null) {
-            throw new IllegalStateException("No movie found for cluster centroid");
-        }
         List<RecommendMovie> recommendations = new ArrayList<>();
         for (MovieResponse movie : similarMovies) {
+            float[] movieEmbedding = movieService.getEmbeddingById(movie.id());
+            float[] reasonEmbedding = findClosestClusterEmbedding(movieEmbedding, cluster.getMovieEmbeddings());
+            var reasonMovie = movieService.getMovieByEmbedding(reasonEmbedding).orElse(null);
+            if (reasonMovie == null) {
+                throw new IllegalStateException("No movie found for reason embedding");
+            }
             var response = toRecommendMovieResponse(movie, reasonMovie);
-            recommendations.add(new RecommendMovie(ClusterService.cosineSimilarity(movieService.getEmbeddingById(movie.id()), cluster.getCentroid()), response));
+            recommendations.add(new RecommendMovie(ClusterService.cosineSimilarity(movieEmbedding, cluster.getCentroid()), response));
         }
         return recommendations;
+    }
+
+    private float[] findClosestClusterEmbedding(float[] target, List<float[]> clusterEmbeddings) {
+        float[] best = null;
+        float bestSimilarity = -Float.MAX_VALUE;
+        for (float[] candidate : clusterEmbeddings) {
+            float similarity = ClusterService.cosineSimilarity(target, candidate);
+            if (similarity > bestSimilarity) {
+                bestSimilarity = similarity;
+                best = candidate;
+            }
+        }
+        return best;
     }
 
     private RecommendMovieResponse toRecommendMovieResponse(MovieResponse movie, MovieResponse reason) {

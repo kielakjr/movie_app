@@ -69,10 +69,11 @@ public class RecommendServiceTest {
             cluster.addMovieEmbedding(new float[]{0.1f, 0.2f});
             state.getClusters().add(cluster);
             when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(createMovieResponse(2L)));
+            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{0.1f, 0.2f});
             when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.empty());
             assertThatThrownBy(() -> recommendService.getRecommendedMovies(session, 10))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("No movie found for cluster centroid");
+                .hasMessage("No movie found for reason embedding");
         }
 
         @Test
