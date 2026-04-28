@@ -163,7 +163,7 @@ class MovieServiceTest {
     }
 
     @Nested
-    class FindLeastSimilar {
+    class FindUnseenPool {
 
         private Movie buildMovie(long id) {
             return Movie.builder()
@@ -175,47 +175,21 @@ class MovieServiceTest {
         }
 
         @Test
-        void withEmptySeenIds_callsRepositoryWithEmptySet() {
-            float[] embedding = {0.1f, 0.2f};
-            when(movieRepository.findLeastSimilarExcluding(any(), anyInt(), any())).thenReturn(List.of());
+        void delegatesToRepositoryWithLimit() {
+            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of(buildMovie(1L), buildMovie(2L)));
 
-            movieService.findLeastSimilar(embedding, 5, Set.of());
+            var pool = movieService.findUnseenPool(Set.of(99L), 50);
 
-            verify(movieRepository).findLeastSimilarExcluding("[0.1,0.2]", 5, Set.of());
-        }
-
-        @Test
-        void withNonEmptySeenIds_passesSeenIdsToRepository() {
-            float[] embedding = {0.3f, 0.4f};
-            Set<Long> seenIds = Set.of(1L, 2L);
-            when(movieRepository.findLeastSimilarExcluding(any(), anyInt(), any())).thenReturn(List.of());
-
-            movieService.findLeastSimilar(embedding, 3, seenIds);
-
-            verify(movieRepository).findLeastSimilarExcluding("[0.3,0.4]", 3, seenIds);
-        }
-
-        @Test
-        void mapsRepositoryResultToDto() {
-            float[] embedding = {0.1f, 0.2f};
-            Movie movie = buildMovie(7L);
-            when(movieRepository.findLeastSimilarExcluding(any(), anyInt(), any())).thenReturn(List.of(movie));
-
-            var result = movieService.findLeastSimilar(embedding, 1, Set.of(1L));
-
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).id()).isEqualTo(7L);
-            assertThat(result.get(0).title()).isEqualTo("Movie 7");
+            assertThat(pool).hasSize(2);
+            assertThat(pool.get(0).id()).isEqualTo(1L);
+            verify(movieRepository).findUnseen(eq(Set.of(99L)), eq(PageRequest.of(0, 50)));
         }
 
         @Test
         void returnsEmptyWhenRepositoryFindsNothing() {
-            float[] embedding = {0.1f, 0.2f};
-            when(movieRepository.findLeastSimilarExcluding(any(), anyInt(), any())).thenReturn(List.of());
+            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of());
 
-            var result = movieService.findLeastSimilar(embedding, 5, Set.of(10L));
-
-            assertThat(result).isEmpty();
+            assertThat(movieService.findUnseenPool(Set.of(), 25)).isEmpty();
         }
     }
 

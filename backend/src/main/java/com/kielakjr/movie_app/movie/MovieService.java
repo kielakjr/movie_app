@@ -69,6 +69,12 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
+    public List<MovieResponse> findUnseenPool(Set<Long> seenIds, int limit) {
+        return movieRepository.findUnseen(seenIds, PageRequest.of(0, limit))
+                .stream().map(MovieService::toMovieResponse).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public float[] getEmbeddingById(Long id) {
         String raw = movieRepository.getEmbeddingByIdRaw(id);
         if (raw == null) return null;
@@ -86,16 +92,7 @@ public class MovieService {
         return movieRepository.findByEmbedding(vec).map(MovieService::toMovieResponse);
     }
 
-    @Transactional(readOnly = true)
-    public List<MovieResponse> findLeastSimilar(float[] queryEmbedding, int limit, Set<Long> seenIds) {
-        String vec = toVectorString(queryEmbedding);
-        List<Movie> movies = seenIds.isEmpty()
-                ? movieRepository.findLeastSimilarExcluding(vec, limit, Set.of())
-                : movieRepository.findLeastSimilarExcluding(vec, limit, seenIds);
-        return movies.stream().map(MovieService::toMovieResponse).collect(Collectors.toList());
-    }
-
-    public static String toVectorString(float[] embedding) {
+public static String toVectorString(float[] embedding) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < embedding.length; i++) {
             if (i > 0) sb.append(",");

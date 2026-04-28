@@ -33,6 +33,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class SwipeServiceTest {
@@ -60,8 +61,13 @@ class SwipeServiceTest {
     }
 
     private MovieResponse createMovieResponse(Long id) {
+        return createMovieResponse(id, 10.0);
+    }
+
+    private MovieResponse createMovieResponse(Long id, double popularity) {
         return new MovieResponse(id, 100L + id, "Title " + id, "Overview " + id, "2024-01-01", "en",
-                false, "/poster" + id + ".jpg", "/backdrop" + id + ".jpg", new String[]{"Genre1", "Genre2"}, 10.0, 8.0, 100);
+                false, "/poster" + id + ".jpg", "/backdrop" + id + ".jpg", new String[]{"Genre1", "Genre2"},
+                popularity, 8.0, 100);
     }
 
     @Nested
@@ -80,42 +86,36 @@ class SwipeServiceTest {
             @Test
             void addsMovieToSeenIds() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
-
                 assertThat(state.getSeenMovieIds()).containsExactly(42L);
             }
 
             @Test
             void addsMovieToLikedIds() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
-
                 assertThat(state.getLikedMovieIds()).containsExactly(42L);
             }
 
             @Test
             void incrementsLikesCount() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
-
                 assertThat(state.getLikesCount()).isEqualTo(1);
             }
 
             @Test
             void doesNotAddToDislikedIds() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
-
                 assertThat(state.getDislikedMovieIds()).isEmpty();
             }
 
             @Test
             void fetchesEmbeddingByMovieId() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
-
                 verify(movieService).getEmbeddingById(42L);
             }
 
             @Test
             void addsMovieToClusters() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
-
                 verify(clusterService).addToClusters(eq(MOVIE_EMBEDDING), eq(state.getClusters()));
             }
 
@@ -124,7 +124,6 @@ class SwipeServiceTest {
                 swipeService.swipe(new SwipeRequest(1L, SwipeAction.LIKE), session);
                 swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
                 swipeService.swipe(new SwipeRequest(3L, SwipeAction.LIKE), session);
-
                 verify(clusterService, times(3)).addToClusters(any(), any());
             }
 
@@ -133,7 +132,6 @@ class SwipeServiceTest {
                 swipeService.swipe(new SwipeRequest(1L, SwipeAction.LIKE), session);
                 swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
                 swipeService.swipe(new SwipeRequest(3L, SwipeAction.LIKE), session);
-
                 assertThat(state.getLikesCount()).isEqualTo(3);
                 assertThat(state.getSeenMovieIds()).containsExactlyInAnyOrder(1L, 2L, 3L);
             }
@@ -145,30 +143,25 @@ class SwipeServiceTest {
             @Test
             void addsMovieToDislikedIds() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-
                 assertThat(state.getDislikedMovieIds()).containsExactly(42L);
             }
 
             @Test
             void doesNotIncrementLikesCount() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-
                 assertThat(state.getLikesCount()).isEqualTo(0);
             }
 
             @Test
             void addsToSeenIds() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-
                 assertThat(state.getSeenMovieIds()).containsExactly(42L);
             }
 
             @Test
             void whenEmbeddingIsNull_doesNotCallClusterService() {
                 when(movieService.getEmbeddingById(42L)).thenReturn(null);
-
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-
                 verify(clusterService, never()).addToClusters(any(), any());
             }
 
@@ -185,21 +178,18 @@ class SwipeServiceTest {
                 @Test
                 void addsToDislikedClusters() {
                     swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-
                     verify(clusterService).addToClusters(eq(MOVIE_EMBEDDING), eq(state.getDislikedClusters()));
                 }
 
                 @Test
                 void doesNotAddToLikedClusters() {
                     swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-
                     verify(clusterService, never()).addToClusters(any(), same(state.getClusters()));
                 }
 
                 @Test
                 void fetchesEmbeddingByMovieId() {
                     swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-
                     verify(movieService).getEmbeddingById(42L);
                 }
             }
@@ -211,49 +201,44 @@ class SwipeServiceTest {
             @Test
             void addsMovieToSeenIds() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-
                 assertThat(state.getSeenMovieIds()).containsExactly(42L);
             }
 
             @Test
             void doesNotIncrementLikesCount() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-
                 assertThat(state.getLikesCount()).isEqualTo(0);
             }
 
             @Test
             void doesNotAddToDislikedIds() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-
                 assertThat(state.getDislikedMovieIds()).isEmpty();
             }
 
             @Test
             void doesNotCallClusterService() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-
                 verify(clusterService, never()).addToClusters(any(), any());
             }
         }
     }
 
     @Nested
-    class GetNextFeed {
+    class GetNextFeed_NoClusters {
 
         @Test
-        void returnsNextMovieFromService() {
+        void emptyState_explorePathFallsBackToUnseenWhenPoolEmpty() {
             when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(42L)));
 
             var response = swipeService.getNextFeed(session);
 
             assertThat(response).isPresent();
             assertThat(response.get().id()).isEqualTo(42L);
-            assertThat(response.get().title()).isEqualTo("Title 42");
         }
 
         @Test
-        void noMoreMovies_returnsEmpty() {
+        void emptyState_noMoviesAtAll_returnsEmpty() {
             when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
 
             var response = swipeService.getNextFeed(session);
@@ -266,95 +251,158 @@ class SwipeServiceTest {
     class SwipeReturnsNextMovie {
 
         @Test
-        void returnsNextUnseenMovieAfterSwipe() {
-            when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(99L)));
+        void excludesJustSwipedMovieFromExclusionSet() {
+            when(movieService.findUnseenPool(any(), anyInt())).thenAnswer(invocation -> {
+                Set<Long> excluded = invocation.getArgument(0);
+                assertThat(excluded).contains(42L);
+                return List.of(createMovieResponse(99L));
+            });
 
             var result = swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
 
             assertThat(result).isPresent();
             assertThat(result.get().id()).isEqualTo(99L);
         }
-
-        @Test
-        void excludesJustSwipedMovieFromNext() {
-            when(movieService.getUnseenMovie(any())).thenAnswer(invocation -> {
-                Set<Long> excluded = invocation.getArgument(0);
-                assertThat(excluded).contains(42L);
-                return Optional.of(createMovieResponse(99L));
-            });
-
-            swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-        }
-
-        @Test
-        void returnsEmptyWhenNoMovieAvailable() {
-            when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
-
-            var result = swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-
-            assertThat(result).isEmpty();
-        }
     }
 
     @Nested
-    class DislikeExploitation {
+    class ExplorePath {
 
-        private static final float[] CENTROID = {0.5f, 0.5f};
         private SwipeService spyService;
 
         @BeforeEach
         void setUp() {
-            Cluster dislikedCluster = new Cluster();
-            dislikedCluster.addMovieEmbedding(CENTROID);
-            state.getDislikedClusters().add(dislikedCluster);
             spyService = spy(swipeService);
+            lenient().doReturn(0.05).when(spyService).nextRandom();
         }
 
         @Test
-        void whenRandBelowDislikeExploitationRate_callsFindLeastSimilar() {
-            doReturn(0.05, 0.0).when(spyService).nextRandom();
-            when(movieService.findLeastSimilar(any(), anyInt(), any()))
-                    .thenReturn(List.of(createMovieResponse(55L)));
+        void picksFromPopularityWeightedPool_andFavorsMorePopular() {
+            when(movieService.findUnseenPool(any(), anyInt()))
+                    .thenReturn(List.of(createMovieResponse(1L, 1.0), createMovieResponse(2L, 1000.0)));
 
             var result = spyService.getNextFeed(session);
 
             assertThat(result).isPresent();
-            assertThat(result.get().id()).isEqualTo(55L);
-            verify(movieService).findLeastSimilar(any(), eq(1), any());
+            assertThat(result.get().id()).isIn(1L, 2L);
+            verify(movieService).findUnseenPool(any(), anyInt());
+            verify(movieService, never()).getUnseenMovie(any());
         }
 
         @Test
-        void whenFindLeastSimilarReturnsEmpty_fallsBackToUnseen() {
-            doReturn(0.05, 0.0).when(spyService).nextRandom();
-            when(movieService.findLeastSimilar(any(), anyInt(), any())).thenReturn(List.of());
+        void poolEmpty_fallsBackToGetUnseenMovie() {
+            when(movieService.findUnseenPool(any(), anyInt())).thenReturn(List.of());
             when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(77L)));
 
             var result = spyService.getNextFeed(session);
 
+            assertThat(result).isPresent();
             assertThat(result.get().id()).isEqualTo(77L);
-            verify(movieService).getUnseenMovie(any());
         }
 
         @Test
-        void whenRandAboveDislikeExploitationRate_skipsToUnseen() {
-            doReturn(0.17).when(spyService).nextRandom();
-            when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
+        void filtersOutMoviesSimilarToDislikedClusters() {
+            float[] dislikedCentroid = {1.0f, 0.0f};
+            Cluster dislikedCluster = new Cluster();
+            dislikedCluster.addMovieEmbedding(dislikedCentroid);
+            state.getDislikedClusters().add(dislikedCluster);
 
-            spyService.getNextFeed(session);
+            when(movieService.findUnseenPool(any(), anyInt()))
+                    .thenReturn(List.of(createMovieResponse(1L, 5.0), createMovieResponse(2L, 5.0)));
+            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.05f});
+            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{0.0f, 1.0f});
 
-            verify(movieService, never()).findLeastSimilar(any(), anyInt(), any());
-            verify(movieService).getUnseenMovie(any());
+            var result = spyService.getNextFeed(session);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().id()).isEqualTo(2L);
         }
 
         @Test
-        void whenDislikedClustersEmpty_skipsDislikeExploitation() {
-            state.getDislikedClusters().clear();
-            doReturn(0.05).when(spyService).nextRandom();
-            when(movieService.getUnseenMovie(any())).thenReturn(Optional.empty());
+        void allCandidatesFilteredOut_fallsBackToUnfilteredPool() {
+            float[] dislikedCentroid = {1.0f, 0.0f};
+            Cluster dislikedCluster = new Cluster();
+            dislikedCluster.addMovieEmbedding(dislikedCentroid);
+            state.getDislikedClusters().add(dislikedCluster);
+
+            when(movieService.findUnseenPool(any(), anyInt()))
+                    .thenReturn(List.of(createMovieResponse(1L, 5.0)));
+            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
+
+            var result = spyService.getNextFeed(session);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().id()).isEqualTo(1L);
+            verify(movieService, never()).getUnseenMovie(any());
+        }
+    }
+
+    @Nested
+    class ExploitPath {
+
+        private SwipeService spyService;
+        private final float[] centroid = {1.0f, 0.0f};
+
+        @BeforeEach
+        void setUp() {
+            Cluster cluster = new Cluster();
+            cluster.addMovieEmbedding(centroid);
+            state.getClusters().add(cluster);
+            spyService = spy(swipeService);
+        }
+
+        @Test
+        void picksHighestScoringCandidate_popularityBreaksSimilarityTie() {
+            doReturn(0.9, 0.0, 0.0, 0.0).when(spyService).nextRandom();
+
+            when(movieService.findSimilar(any(), anyInt(), any()))
+                    .thenReturn(List.of(createMovieResponse(1L, 1.0), createMovieResponse(2L, 1000.0)));
+            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
+            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{1.0f, 0.0f});
+
+            var result = spyService.getNextFeed(session);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().id()).isEqualTo(2L);
+        }
+
+        @Test
+        void similarityStillDominatesOverFarApartLowPopularity() {
+            doReturn(0.9, 0.0, 0.0, 0.0).when(spyService).nextRandom();
+
+            when(movieService.findSimilar(any(), anyInt(), any()))
+                    .thenReturn(List.of(createMovieResponse(1L, 1.0), createMovieResponse(2L, 1000.0)));
+            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
+            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{0.0f, 1.0f});
+
+            var result = spyService.getNextFeed(session);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().id()).isEqualTo(1L);
+        }
+
+        @Test
+        void emptyCandidates_fallsBackToUnseen() {
+            doReturn(0.9, 0.0).when(spyService).nextRandom();
+            when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of());
+            when(movieService.getUnseenMovie(any())).thenReturn(Optional.of(createMovieResponse(123L)));
+
+            var result = spyService.getNextFeed(session);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().id()).isEqualTo(123L);
+        }
+
+        @Test
+        void requestsExploitPoolSize() {
+            doReturn(0.9, 0.0, 0.0).when(spyService).nextRandom();
+            when(movieService.findSimilar(any(), anyInt(), any()))
+                    .thenReturn(List.of(createMovieResponse(1L, 1.0)));
+            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
 
             spyService.getNextFeed(session);
 
-            verify(movieService, never()).findLeastSimilar(any(), anyInt(), any());
+            verify(movieService).findSimilar(any(), eq(25), any());
         }
     }
 }

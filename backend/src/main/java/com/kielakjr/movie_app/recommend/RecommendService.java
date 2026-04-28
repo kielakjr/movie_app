@@ -22,6 +22,10 @@ public class RecommendService {
     private final MovieService movieService;
     private final SessionService sessionService;
 
+    private static final float W_SIM = 0.55f;
+    private static final float W_POP = 0.30f;
+    private static final float W_NOISE = 0.15f;
+
     public List<RecommendMovieResponse> getRecommendedMovies(HttpSession session, int limit) {
         var state = sessionService.getState(session);
         if (state.getClusters().isEmpty()) {
@@ -34,7 +38,7 @@ public class RecommendService {
         List<List<RecommendMovie>> perCluster = new ArrayList<>();
         for (Cluster cluster : state.getClusters()) {
             var clusterRecommendations = new ArrayList<>(getRecommendedMoviesForCluster(cluster, perClusterLimit, seenMovieIds));
-            clusterRecommendations.sort((a, b) -> Float.compare(b.similarity(), a.similarity()));
+            clusterRecommendations.sort((a, b) -> Double.compare(b.score(), a.score()));
             perCluster.add(clusterRecommendations);
         }
         List<RecommendMovieResponse> result = new ArrayList<>();
@@ -57,6 +61,10 @@ public class RecommendService {
         if (similarMovies.isEmpty()) {
             return List.of();
         }
+        double maxLogPop = 0.0;
+        for (MovieResponse m : similarMovies) {
+            maxLogPop = Math.max(maxLogPop, Math.log1p(safePopularity(m)));
+        }
         List<RecommendMovie> recommendations = new ArrayList<>();
         for (MovieResponse movie : similarMovies) {
             float[] movieEmbedding = movieService.getEmbeddingById(movie.id());
@@ -65,8 +73,11 @@ public class RecommendService {
             if (reasonMovie == null) {
                 throw new IllegalStateException("No movie found for reason embedding");
             }
+            double similarity = ClusterService.cosineSimilarity(movieEmbedding, cluster.getCentroid());
+            double popNorm = maxLogPop <= 0.0 ? 0.0 : Math.log1p(safePopularity(movie)) / maxLogPop;
+            double score = W_SIM * similarity + W_POP * popNorm + W_NOISE * nextRandom();
             var response = toRecommendMovieResponse(movie, reasonMovie);
-            recommendations.add(new RecommendMovie(ClusterService.cosineSimilarity(movieEmbedding, cluster.getCentroid()), response));
+            recommendations.add(new RecommendMovie(score, response));
         }
         return recommendations;
     }
@@ -88,6 +99,16 @@ public class RecommendService {
         return new RecommendMovieResponse(movie, reason);
     }
 
-    private record RecommendMovie(float similarity, RecommendMovieResponse response) {
+    private static double safePopularity(MovieResponse movie) {
+        Double pop = movie.popularity();
+        if (pop == null || pop < 0.0) return 0.0;
+        return pop;
+    }
+
+    public double nextRandom() {
+        return Math.random();
+    }
+
+    private record RecommendMovie(double score, RecommendMovieResponse response) {
     }
 }

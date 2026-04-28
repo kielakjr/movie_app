@@ -7,6 +7,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doReturn;
 import org.mockito.ArgumentMatchers;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -104,6 +106,32 @@ public class RecommendServiceTest {
             recommendService.getRecommendedMovies(session, 10);
 
             verify(movieService).findSimilar(any(), anyInt(), ArgumentMatchers.<Set<Long>>argThat(ids -> ids.contains(10L) && ids.contains(20L)));
+        }
+
+        @Test
+        void popularityInfluencesOrdering_whenSimilarityIsTied() {
+            Cluster cluster = new Cluster();
+            cluster.addMovieEmbedding(new float[]{1.0f, 0.0f});
+            state.getClusters().add(cluster);
+
+            MovieResponse lowPop = new MovieResponse(1L, 101L, "Low", "ov", "2024-01-01", "en",
+                    false, "/p1.jpg", "/b1.jpg", new String[]{}, 1.0, 8.0, 100);
+            MovieResponse highPop = new MovieResponse(2L, 102L, "High", "ov", "2024-01-01", "en",
+                    false, "/p2.jpg", "/b2.jpg", new String[]{}, 1000.0, 8.0, 100);
+
+            when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(lowPop, highPop));
+            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
+            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{1.0f, 0.0f});
+            when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.of(lowPop));
+
+            RecommendService spied = spy(recommendService);
+            doReturn(0.0).when(spied).nextRandom();
+
+            var recommendations = spied.getRecommendedMovies(session, 10);
+
+            assertThat(recommendations).hasSize(2);
+            assertThat(recommendations.get(0).movie().id()).isEqualTo(2L);
+            assertThat(recommendations.get(1).movie().id()).isEqualTo(1L);
         }
 
         @Test
