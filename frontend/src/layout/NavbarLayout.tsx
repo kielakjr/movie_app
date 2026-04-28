@@ -4,7 +4,10 @@ const NavbarLayout = () => {
   return (
     <>
       <nav className="navbar">
-        <NavLink to="/" className="navbar-logo">CineSearch</NavLink>
+        <NavLink to="/" className="navbar-logo">
+          <span className="navbar-logo-mark">C</span>
+          <span className="navbar-logo-text">Cine<span>Search</span></span>
+        </NavLink>
         <div className="navbar-links">
           <NavLink
             to="/"

@@ -20,7 +20,10 @@ const RecommendationsModal = ({ recommendations, isLoading, onClose }: Recommend
 
         <div className="recs-body">
           {isLoading && (
-            <div className="recs-state">Finding your picks...</div>
+            <div className="recs-state">
+              <div className="spinner" />
+              <span>Finding your picks…</span>
+            </div>
           )}
 
           {!isLoading && recommendations && recommendations.length === 0 && (
@@ -45,7 +48,7 @@ const RecommendationsModal = ({ recommendations, isLoading, onClose }: Recommend
                         {rating && <span className="movie-card-rating">★ {rating}</span>}
                         {year && <span className="movie-card-year">{year}</span>}
                       </div>
-                      <p className="recs-card-reason">Because you liked: {reason.title}</p>
+                      <p className="recs-card-reason">Because you liked <strong>{reason.title}</strong></p>
                     </div>
                   </div>
                 );

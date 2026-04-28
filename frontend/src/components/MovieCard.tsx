@@ -10,19 +10,24 @@ const MovieCard = ({ movie }: MovieCardProps) => {
 
   return (
     <div className="movie-card">
-      {movie.poster_path ? (
-        <img
-          className="movie-card-poster"
-          src={movie.poster_path}
-          alt={movie.title}
-        />
-      ) : (
-        <div className="movie-card-poster-placeholder">No poster</div>
-      )}
+      <div className="movie-card-poster-wrap">
+        {rating && (
+          <span className="movie-card-rating-badge">★ {rating}</span>
+        )}
+        {movie.poster_path ? (
+          <img
+            className="movie-card-poster"
+            src={movie.poster_path}
+            alt={movie.title}
+            loading="lazy"
+          />
+        ) : (
+          <div className="movie-card-poster-placeholder">No poster</div>
+        )}
+      </div>
       <div className="movie-card-body">
         <h3 className="movie-card-title">{movie.title}</h3>
         <div className="movie-card-meta">
-          {rating && <span className="movie-card-rating">★ {rating}</span>}
           {year && <span className="movie-card-year">{year}</span>}
         </div>
         {movie.genres && movie.genres.length > 0 && (

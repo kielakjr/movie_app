@@ -52,7 +52,12 @@ const Swipe = () => {
     </button>
   );
 
-  if (isLoading) return <div className="state-center">Loading...</div>;
+  if (isLoading) return (
+    <div className="state-center">
+      <div className="spinner" />
+      <span>Loading…</span>
+    </div>
+  );
   if (error || (!isLoading && !initialMovie)) return (
     <div className="state-center swipe-done">
       <span className="swipe-done-icon">🎬</span>
@@ -139,6 +144,8 @@ const Swipe = () => {
   };
 
   const rotation = flying ? 0 : (drag.x / 200) * MAX_ROTATION;
+  const likeOpacity = flying ? 0 : Math.min(Math.max(drag.x / DRAG_THRESHOLD, 0), 1);
+  const nopeOpacity = flying ? 0 : Math.min(Math.max(-drag.x / DRAG_THRESHOLD, 0), 1);
 
   const cardStyle = flying ? {} : {
     transform: drag.x !== 0 || drag.y !== 0
@@ -152,6 +159,10 @@ const Swipe = () => {
     <>
       <div className="swipe-page">
         <div className="swipe-header">
+          <span className="swipe-counter">
+            <span className="swipe-counter-dot" />
+            {likesCount} {likesCount === 1 ? 'like' : 'likes'}
+          </span>
           {resetButton}
         </div>
         <div className="swipe-stack">
@@ -165,6 +176,8 @@ const Swipe = () => {
             onPointerCancel={onPointerUp}
             onAnimationEnd={handleAnimationEnd}
           >
+            <div className="swipe-stamp swipe-stamp-like" style={{ opacity: likeOpacity }}>Like</div>
+            <div className="swipe-stamp swipe-stamp-nope" style={{ opacity: nopeOpacity }}>Nope</div>
             {effectiveCurrent.poster_path ? (
               <img className="swipe-poster" src={effectiveCurrent.poster_path} alt={effectiveCurrent.title} draggable={false} />
             ) : (
