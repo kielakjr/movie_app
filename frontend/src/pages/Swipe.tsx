@@ -89,7 +89,6 @@ const Swipe = () => {
     animationDoneRef.current = false;
     pendingNextRef.current = null;
     setFlying(dir);
-    setDrag({ x: 0, y: 0 });
     swipe({ movieId: effectiveCurrent.id, action }, {
       onSuccess: (nextMovie) => {
         if (action === 'LIKE') {
@@ -109,7 +108,8 @@ const Swipe = () => {
     });
   };
 
-  const handleAnimationEnd = () => {
+  const handleTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
+    if (!flying || e.propertyName !== 'transform') return;
     animationDoneRef.current = true;
     const pending = pendingNextRef.current;
     if (pending) {
@@ -147,7 +147,17 @@ const Swipe = () => {
   const likeOpacity = flying ? 0 : Math.min(Math.max(drag.x / DRAG_THRESHOLD, 0), 1);
   const nopeOpacity = flying ? 0 : Math.min(Math.max(-drag.x / DRAG_THRESHOLD, 0), 1);
 
-  const cardStyle = flying ? {} : {
+  const flyTransform =
+    flying === 'right' ? 'translateX(160%) rotate(26deg)' :
+    flying === 'left' ? 'translateX(-160%) rotate(-26deg)' :
+    flying === 'skip' ? 'translateY(-130%) scale(0.85)' :
+    null;
+
+  const cardStyle: React.CSSProperties = flying ? {
+    transform: flyTransform!,
+    opacity: 0,
+    transition: `transform ${flying === 'skip' ? '0.18s ease-in' : '0.22s cubic-bezier(.4,0,.6,1)'}, opacity 0.22s linear`,
+  } : {
     transform: drag.x !== 0 || drag.y !== 0
       ? `translate(${drag.x}px, ${drag.y * 0.3}px) rotate(${rotation}deg)`
       : undefined,
@@ -168,13 +178,13 @@ const Swipe = () => {
         <div className="swipe-stack">
           <div
             key={effectiveCurrent.id}
-            className={`swipe-card${flying ? ` swipe-fly-${flying}` : ''}`}
+            className="swipe-card"
             style={cardStyle}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            onAnimationEnd={handleAnimationEnd}
+            onTransitionEnd={handleTransitionEnd}
           >
             <div className="swipe-stamp swipe-stamp-like" style={{ opacity: likeOpacity }}>Like</div>
             <div className="swipe-stamp swipe-stamp-nope" style={{ opacity: nopeOpacity }}>Nope</div>

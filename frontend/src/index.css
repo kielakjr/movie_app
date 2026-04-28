@@ -38,6 +38,7 @@ html, body {
   color: var(--text-primary);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -643,22 +644,6 @@ button {
   pointer-events: none;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
-
-@keyframes swipe-fly-left {
-  to { transform: translateX(-160%) rotate(-26deg); opacity: 0; }
-}
-
-@keyframes swipe-fly-right {
-  to { transform: translateX(160%) rotate(26deg); opacity: 0; }
-}
-
-@keyframes swipe-fly-skip {
-  to { transform: translateY(-130%) scale(0.85); opacity: 0; }
-}
-
-.swipe-fly-left  { animation: swipe-fly-left  0.22s cubic-bezier(.4,0,.6,1) forwards; }
-.swipe-fly-right { animation: swipe-fly-right 0.22s cubic-bezier(.4,0,.6,1) forwards; }
-.swipe-fly-skip  { animation: swipe-fly-skip  0.18s ease-in forwards; }
 
 .swipe-poster {
   width: 100%;
