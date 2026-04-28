@@ -30,17 +30,26 @@ public class RecommendService {
         var seenMovieIds = new HashSet<>(state.getLikedMovieIds());
         var dislikedMovieIds = new HashSet<>(state.getDislikedMovieIds());
         seenMovieIds.addAll(dislikedMovieIds);
-        List<RecommendMovie> recommendations = new ArrayList<>();
         int perClusterLimit = state.getClusters().size() * 5 < limit ? (int) Math.ceil((float) limit / state.getClusters().size()) : 5;
+        List<List<RecommendMovie>> perCluster = new ArrayList<>();
         for (Cluster cluster : state.getClusters()) {
-            var clusterRecommendations = getRecommendedMoviesForCluster(cluster, perClusterLimit, seenMovieIds);
-            recommendations.addAll(clusterRecommendations);
+            var clusterRecommendations = new ArrayList<>(getRecommendedMoviesForCluster(cluster, perClusterLimit, seenMovieIds));
+            clusterRecommendations.sort((a, b) -> Float.compare(b.similarity(), a.similarity()));
+            perCluster.add(clusterRecommendations);
         }
-        return recommendations.stream()
-                .sorted((a, b) -> Float.compare(b.similarity(), a.similarity()))
-                .limit(limit)
-                .map(RecommendMovie::response)
-                .toList();
+        List<RecommendMovieResponse> result = new ArrayList<>();
+        boolean addedAny = true;
+        while (result.size() < limit && addedAny) {
+            addedAny = false;
+            for (List<RecommendMovie> clusterRecs : perCluster) {
+                if (result.size() >= limit) break;
+                if (!clusterRecs.isEmpty()) {
+                    result.add(clusterRecs.remove(0).response());
+                    addedAny = true;
+                }
+            }
+        }
+        return result;
     }
 
     private List<RecommendMovie> getRecommendedMoviesForCluster(Cluster cluster, int limit, Set<Long> seenMovieIds) {
