@@ -9,7 +9,6 @@ The project is built end-to-end as a multi-service system: a Spring Boot 4 / Jav
 ![React](https://img.shields.io/badge/React-19-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Postgres](https://img.shields.io/badge/Postgres-16%20%2B%20pgvector-336791)
-![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
