@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -30,6 +31,7 @@ public class SeedService {
     private final TmdbImageUrlBuilder imageUrlBuilder;
     private final MovieService movieService;
     private final EmbeddingClient embeddingClient;
+    private final Clock clock;
 
     public int seedPopularMovies(int pages) {
         return seedMovies(pages, tmdbClient::getPopularMovies);
@@ -60,9 +62,11 @@ public class SeedService {
                 ));
 
         Set<Long> existingIds = movieService.findAllTmdbIds();
+        LocalDate today = LocalDate.now(clock);
 
         List<Movie> toSave = uniqueFetched.values().stream()
                 .filter(m -> !existingIds.contains(m.id()))
+                .filter(m -> !isUnreleased(m.release_date(), today))
                 .map(m -> buildMovie(m, genreMap))
                 .toList();
 
@@ -133,6 +137,11 @@ public class SeedService {
                 .voteAverage(m.vote_average())
                 .voteCount(m.vote_count())
                 .build();
+    }
+
+    private boolean isUnreleased(String releaseDate, LocalDate today) {
+        LocalDate parsed = parseReleaseDate(releaseDate);
+        return parsed != null && parsed.isAfter(today);
     }
 
     private LocalDate parseReleaseDate(String releaseDate) {

@@ -15,10 +15,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.BeforeEach;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 
@@ -34,8 +37,14 @@ class SeedServiceTest {
     @Mock private MovieService movieService;
     @Mock private EmbeddingClient embeddingClient;
 
-    @InjectMocks
+    private final Clock clock = Clock.fixed(Instant.parse("2026-04-28T00:00:00Z"), ZoneOffset.UTC);
+
     private SeedService seedService;
+
+    @BeforeEach
+    void setUp() {
+        seedService = new SeedService(tmdbClient, imageUrlBuilder, movieService, embeddingClient, clock);
+    }
 
     private TmdbGenreListResponse genres(int id, String name) {
         return new TmdbGenreListResponse(List.of(new TmdbGenre(id, name)));
@@ -211,6 +220,62 @@ class SeedServiceTest {
                 when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[0]));
 
                 assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
+            }
+        }
+
+        @Nested
+        class UnreleasedFilter {
+
+            @Test
+            void futureReleaseDate_isFilteredOut() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(
+                        movie(1L, "Already Out", "2026-01-01", List.of(28)),
+                        movie(2L, "Future Film", "2026-12-31", List.of(28))
+                )));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(1L, 1L, "Already Out")));
+                when(tmdbClient.getKeywords(1L)).thenReturn(emptyKeywords());
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[]{0.1f}));
+
+                ArgumentCaptor<List<Movie>> captor = ArgumentCaptor.forClass(List.class);
+                when(movieService.saveAll(captor.capture())).thenReturn(List.of(savedMovie(1L, 1L, "Already Out")));
+
+                assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
+                assertThat(captor.getValue()).hasSize(1);
+                assertThat(captor.getValue().get(0).getTmdbId()).isEqualTo(1L);
+                verify(tmdbClient, never()).getKeywords(2L);
+            }
+
+            @Test
+            void releaseDateEqualToToday_isKept() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(
+                        movie(7L, "Out Today", "2026-04-28", List.of(28))
+                )));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+                when(imageUrlBuilder.posterUrl(any())).thenReturn(null);
+                when(imageUrlBuilder.backdropUrl(any())).thenReturn(null);
+                when(movieService.saveAll(any())).thenReturn(List.of(savedMovie(7L, 7L, "Out Today")));
+                when(tmdbClient.getKeywords(7L)).thenReturn(emptyKeywords());
+                when(embeddingClient.embedBatch(any())).thenReturn(List.of(new float[]{0.1f}));
+
+                assertThat(seedService.seedPopularMovies(1)).isEqualTo(1);
+            }
+
+            @Test
+            void allFutureReleaseDates_resultsInNoSaves() {
+                when(tmdbClient.getGenres()).thenReturn(genres(28, "Action"));
+                when(tmdbClient.getPopularMovies(1)).thenReturn(new TmdbMovieResponse(1, List.of(
+                        movie(1L, "Future A", "2027-01-01", List.of(28)),
+                        movie(2L, "Future B", "2030-06-01", List.of(28))
+                )));
+                when(movieService.findAllTmdbIds()).thenReturn(Set.of());
+
+                assertThat(seedService.seedPopularMovies(1)).isEqualTo(0);
+                verify(movieService, never()).saveAll(any());
             }
         }
 
