@@ -1,6 +1,7 @@
 import { useDebounce, useMovies, useSearchSimilarMovies } from '../hooks';
 import { useState } from 'react';
 import MovieCard from '../components/MovieCard';
+import { ArrowLeftIcon, ArrowRightIcon, SearchIcon } from '../components/Icons';
 
 const Movies = () => {
   const [page, setPage] = useState(0);
@@ -29,6 +30,7 @@ const Movies = () => {
       </div>
 
       <div className="search-bar">
+        <SearchIcon />
         <input
           type="text"
           placeholder="Search similar movies…"
@@ -71,7 +73,7 @@ const Movies = () => {
               onClick={() => setPage(prev => Math.max(prev - 1, 0))}
               disabled={page === 0}
             >
-              ← Previous
+              <ArrowLeftIcon /> Previous
             </button>
             <span className="pagination-info">Page {page + 1} of {data.page.total_pages}</span>
             <button
@@ -79,7 +81,7 @@ const Movies = () => {
               onClick={() => setPage(prev => prev + 1)}
               disabled={page >= data.page.total_pages - 1}
             >
-              Next →
+              Next <ArrowRightIcon />
             </button>
           </div>
         </>

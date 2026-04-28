@@ -2,10 +2,11 @@ import { useState, useRef } from 'react';
 import { useNextSwipeMovie, useSwipe, useRecommendations, useResetSession } from '../hooks';
 import type { Movie } from '../types';
 import RecommendationsModal from '../components/RecommendationsModal';
+import { FilmIcon, HeartIcon, SkipIcon, StarIcon, XIcon } from '../components/Icons';
 
 const RECS_EVERY_N_LIKES = 5;
 const DRAG_THRESHOLD = 80;
-const MAX_ROTATION = 18;
+const MAX_ROTATION = 14;
 
 const Swipe = () => {
   const { data: initialMovie, isLoading, error } = useNextSwipeMovie();
@@ -52,28 +53,23 @@ const Swipe = () => {
     </button>
   );
 
+  const doneState = (
+    <div className="state-center swipe-done">
+      <span className="swipe-done-icon"><FilmIcon /></span>
+      <p>You've seen all movies</p>
+      <p className="swipe-done-sub">Check back later for new additions.</p>
+      {resetButton}
+    </div>
+  );
+
   if (isLoading) return (
     <div className="state-center">
       <div className="spinner" />
       <span>Loading…</span>
     </div>
   );
-  if (error || (!isLoading && !initialMovie)) return (
-    <div className="state-center swipe-done">
-      <span className="swipe-done-icon">🎬</span>
-      <p>You've seen all movies!</p>
-      <p className="swipe-done-sub">Check back later for new additions.</p>
-      {resetButton}
-    </div>
-  );
-  if (current === null) return (
-    <div className="state-center swipe-done">
-      <span className="swipe-done-icon">🎬</span>
-      <p>You've seen all movies!</p>
-      <p className="swipe-done-sub">Check back later for new additions.</p>
-      {resetButton}
-    </div>
-  );
+  if (error || (!isLoading && !initialMovie)) return doneState;
+  if (current === null) return doneState;
   if (!effectiveCurrent) return null;
 
   const year = effectiveCurrent.release_date?.slice(0, 4);
@@ -144,12 +140,15 @@ const Swipe = () => {
   };
 
   const rotation = flying ? 0 : (drag.x / 200) * MAX_ROTATION;
-  const likeOpacity = flying ? 0 : Math.min(Math.max(drag.x / DRAG_THRESHOLD, 0), 1);
-  const nopeOpacity = flying ? 0 : Math.min(Math.max(-drag.x / DRAG_THRESHOLD, 0), 1);
+  const dragRatio = flying ? 0 : Math.min(Math.abs(drag.x) / DRAG_THRESHOLD, 1);
+  const glowColor = drag.x > 0 ? '62, 207, 142' : '224, 69, 77';
+  const glowShadow = dragRatio > 0
+    ? `0 0 0 2px rgba(${glowColor}, ${0.5 * dragRatio}), 0 0 40px rgba(${glowColor}, ${0.35 * dragRatio}), 0 24px 60px rgba(0,0,0,0.55)`
+    : undefined;
 
   const flyTransform =
-    flying === 'right' ? 'translateX(160%) rotate(26deg)' :
-    flying === 'left' ? 'translateX(-160%) rotate(-26deg)' :
+    flying === 'right' ? 'translateX(160%) rotate(22deg)' :
+    flying === 'left' ? 'translateX(-160%) rotate(-22deg)' :
     flying === 'skip' ? 'translateY(-130%) scale(0.85)' :
     null;
 
@@ -161,8 +160,9 @@ const Swipe = () => {
     transform: drag.x !== 0 || drag.y !== 0
       ? `translate(${drag.x}px, ${drag.y * 0.3}px) rotate(${rotation}deg)`
       : undefined,
-    transition: !isDragging ? 'transform 0.3s ease' : 'none',
+    transition: !isDragging ? 'transform 0.3s ease, box-shadow 0.2s ease' : 'box-shadow 0.1s ease',
     cursor: isDragging ? 'grabbing' : 'grab',
+    boxShadow: glowShadow,
   };
 
   return (
@@ -186,8 +186,6 @@ const Swipe = () => {
             onPointerCancel={onPointerUp}
             onTransitionEnd={handleTransitionEnd}
           >
-            <div className="swipe-stamp swipe-stamp-like" style={{ opacity: likeOpacity }}>Like</div>
-            <div className="swipe-stamp swipe-stamp-nope" style={{ opacity: nopeOpacity }}>Nope</div>
             {effectiveCurrent.poster_path ? (
               <img className="swipe-poster" src={effectiveCurrent.poster_path} alt={effectiveCurrent.title} draggable={false} />
             ) : (
@@ -197,7 +195,7 @@ const Swipe = () => {
             <div className="swipe-overlay">
               <h2 className="swipe-title">{effectiveCurrent.title}</h2>
               <div className="swipe-meta">
-                {rating && <span className="movie-card-rating">★ {rating}</span>}
+                {rating && <span className="movie-card-rating"><StarIcon /> {rating}</span>}
                 {year && <span className="movie-card-year">{year}</span>}
                 {effectiveCurrent.original_language && (
                   <span className="swipe-lang">{effectiveCurrent.original_language.toUpperCase()}</span>
@@ -220,24 +218,27 @@ const Swipe = () => {
             onClick={() => launchCard('left', 'DISLIKE')}
             disabled={!canSwipe}
             title="Dislike"
+            aria-label="Dislike"
           >
-            ✕
+            <XIcon />
           </button>
           <button
             className="swipe-btn swipe-btn-skip"
             onClick={() => launchCard('skip', 'SKIP')}
             disabled={!canSwipe}
             title="Skip"
+            aria-label="Skip"
           >
-            →
+            <SkipIcon />
           </button>
           <button
             className="swipe-btn swipe-btn-like"
             onClick={() => launchCard('right', 'LIKE')}
             disabled={!canSwipe}
             title="Like"
+            aria-label="Like"
           >
-            ♥
+            <HeartIcon />
           </button>
         </div>
       </div>

@@ -1,12 +1,13 @@
 import { NavLink, Outlet } from 'react-router';
+import { FilmIcon } from '../components/Icons';
 
 const NavbarLayout = () => {
   return (
     <>
       <nav className="navbar">
         <NavLink to="/" className="navbar-logo">
-          <span className="navbar-logo-mark">C</span>
-          <span className="navbar-logo-text">Cine<span>Search</span></span>
+          <span className="navbar-logo-mark"><FilmIcon /></span>
+          <span>CineSearch</span>
         </NavLink>
         <div className="navbar-links">
           <NavLink

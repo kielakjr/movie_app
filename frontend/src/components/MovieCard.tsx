@@ -1,4 +1,5 @@
 import type { Movie } from '../types';
+import { StarIcon } from './Icons';
 
 interface MovieCardProps {
   movie: Movie;
@@ -12,7 +13,7 @@ const MovieCard = ({ movie }: MovieCardProps) => {
     <div className="movie-card">
       <div className="movie-card-poster-wrap">
         {rating && (
-          <span className="movie-card-rating-badge">★ {rating}</span>
+          <span className="movie-card-rating-badge"><StarIcon /> {rating}</span>
         )}
         {movie.poster_path ? (
           <img

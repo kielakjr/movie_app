@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { ArrowRightIcon, FilmIcon, LayersIcon, SparklesIcon } from '../components/Icons';
 
 const Home = () => {
   return (
@@ -18,32 +19,32 @@ const Home = () => {
         </p>
         <div className="hero-actions">
           <Link to="/movies" className="hero-cta">
-            Browse Movies <span aria-hidden>→</span>
+            Browse movies <ArrowRightIcon />
           </Link>
           <Link to="/swipe" className="hero-cta-secondary">
-            Start Swiping
+            Start swiping
           </Link>
         </div>
       </section>
 
       <section className="features">
         <div className="feature-card">
-          <div className="feature-icon">🎬</div>
-          <h3 className="feature-title">Vast Library</h3>
+          <div className="feature-icon"><FilmIcon /></div>
+          <h3 className="feature-title">Vast library</h3>
           <p className="feature-desc">
             Explore thousands of films with rich metadata, ratings, and genre tags.
           </p>
         </div>
         <div className="feature-card">
-          <div className="feature-icon">✨</div>
-          <h3 className="feature-title">Smart Recommendations</h3>
+          <div className="feature-icon"><SparklesIcon /></div>
+          <h3 className="feature-title">Smart recommendations</h3>
           <p className="feature-desc">
             Our recommender learns from your taste to surface films you'll love.
           </p>
         </div>
         <div className="feature-card">
-          <div className="feature-icon">💫</div>
-          <h3 className="feature-title">Tinder-style Swipe</h3>
+          <div className="feature-icon"><LayersIcon /></div>
+          <h3 className="feature-title">Swipe to rate</h3>
           <p className="feature-desc">
             Quickly rate movies with a fluid swipe interface — like, skip, or pass.
           </p>

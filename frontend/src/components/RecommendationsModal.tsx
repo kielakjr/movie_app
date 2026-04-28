@@ -1,4 +1,5 @@
 import type { RecommendMovieResponse } from '../types';
+import { StarIcon, XIcon } from './Icons';
 
 interface RecommendationsModalProps {
   recommendations: RecommendMovieResponse[] | undefined;
@@ -15,7 +16,7 @@ const RecommendationsModal = ({ recommendations, isLoading, onClose }: Recommend
             <h2 className="recs-title">Based on your taste</h2>
             <p className="recs-subtitle">Movies you might enjoy</p>
           </div>
-          <button className="recs-close" onClick={onClose} aria-label="Close">✕</button>
+          <button className="recs-close" onClick={onClose} aria-label="Close"><XIcon /></button>
         </div>
 
         <div className="recs-body">
@@ -27,7 +28,7 @@ const RecommendationsModal = ({ recommendations, isLoading, onClose }: Recommend
           )}
 
           {!isLoading && recommendations && recommendations.length === 0 && (
-            <div className="recs-state">No recommendations yet — keep liking movies!</div>
+            <div className="recs-state">No recommendations yet — keep liking movies.</div>
           )}
 
           {!isLoading && recommendations && recommendations.length > 0 && (
@@ -45,7 +46,7 @@ const RecommendationsModal = ({ recommendations, isLoading, onClose }: Recommend
                     <div className="recs-card-body">
                       <p className="recs-card-title">{movie.title}</p>
                       <div className="movie-card-meta">
-                        {rating && <span className="movie-card-rating">★ {rating}</span>}
+                        {rating && <span className="movie-card-rating"><StarIcon /> {rating}</span>}
                         {year && <span className="movie-card-year">{year}</span>}
                       </div>
                       <p className="recs-card-reason">Because you liked <strong>{reason.title}</strong></p>
@@ -58,7 +59,7 @@ const RecommendationsModal = ({ recommendations, isLoading, onClose }: Recommend
         </div>
 
         <div className="recs-footer">
-          <button className="recs-continue-btn" onClick={onClose}>Keep Swiping</button>
+          <button className="recs-continue-btn" onClick={onClose}>Keep swiping</button>
         </div>
       </div>
     </div>
