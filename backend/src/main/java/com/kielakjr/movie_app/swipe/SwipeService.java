@@ -53,6 +53,7 @@ public class SwipeService {
             }
             case SKIP -> state.getSeenMovieIds().add(request.movieId());
         }
+        sessionService.save(httpSession, state);
 
         var excludeIds = new HashSet<>(state.getSeenMovieIds());
         return getNextMovie(httpSession, excludeIds);

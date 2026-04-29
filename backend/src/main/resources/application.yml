@@ -40,10 +40,11 @@ spring:
       database: ${REDIS_DATABASE:0}
 
   session:
-    store-type: redis
-    timeout: 1800
+    timeout: 30m
     redis:
-      save-mode: always
+      repository-type: default
+      flush-mode: on_save
+      namespace: spring:session
 
 embedding:
   base-url: ${EMBEDDING_BASE_URL:http://localhost:8000}
