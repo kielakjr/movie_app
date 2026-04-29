@@ -11,10 +11,10 @@ public class SessionConfig {
 
     @Bean
     public CookieSerializer cookieSerializer(
-            @Value("${server.servlet.session.cookie.name:MOVIE_APP_SESSION}") String name,
-            @Value("${server.servlet.session.cookie.http-only:true}") boolean httpOnly,
-            @Value("${server.servlet.session.cookie.same-site:Lax}") String sameSite,
-            @Value("${server.servlet.session.cookie.secure:false}") boolean secure
+            @Value("${server.servlet.session.cookie.name}") String name,
+            @Value("${server.servlet.session.cookie.http-only}") boolean httpOnly,
+            @Value("${server.servlet.session.cookie.same-site}") String sameSite,
+            @Value("${server.servlet.session.cookie.secure}") boolean secure
     ) {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setCookieName(name);

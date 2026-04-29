@@ -18,6 +18,7 @@ import java.util.Base64;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import com.kielakjr.movie_app.cluster.Cluster;
 class RecommendIntegrationTest extends BaseIntegrationTest {
@@ -154,7 +155,7 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(get("/api/recommend").cookie(cookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2))
-                    .andExpect(jsonPath("$[0].movie.tmdb_id").value(202));
+                    .andExpect(jsonPath("$[*].movie.tmdb_id", containsInAnyOrder(202, 203)));
         }
 
         @Test
