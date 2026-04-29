@@ -12,6 +12,8 @@ import java.util.ArrayList;
 public class Cluster implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    private static final float RECENCY_DECAY = 0.9f;
+
     private List<float[]> movieEmbeddings = new ArrayList<>();
     private float[] centroid;
 
@@ -25,15 +27,20 @@ public class Cluster implements Serializable {
             centroid = null;
             return;
         }
+        int n = movieEmbeddings.size();
         int dims = movieEmbeddings.get(0).length;
         centroid = new float[dims];
-        for (float[] embedding : movieEmbeddings) {
+        float weightSum = 0.0f;
+        for (int idx = 0; idx < n; idx++) {
+            float weight = (float) Math.pow(RECENCY_DECAY, n - 1 - idx);
+            float[] embedding = movieEmbeddings.get(idx);
             for (int i = 0; i < dims; i++) {
-                centroid[i] += embedding[i];
+                centroid[i] += embedding[i] * weight;
             }
+            weightSum += weight;
         }
         for (int i = 0; i < dims; i++) {
-            centroid[i] /= movieEmbeddings.size();
+            centroid[i] /= weightSum;
         }
     }
 }
