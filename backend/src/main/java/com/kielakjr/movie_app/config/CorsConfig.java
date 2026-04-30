@@ -1,5 +1,6 @@
 package com.kielakjr.movie_app.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.CorsFilter;
@@ -10,13 +11,16 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     @Bean
     public CorsFilter corsFilter() {
         var cfg = new CorsConfiguration();
         cfg.setAllowCredentials(true);
-        cfg.setAllowedOrigins(List.of("http://localhost:5173"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
+        cfg.setAllowedOrigins(allowedOrigins);
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        cfg.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Requested-With", "Accept"));
         cfg.setExposedHeaders(List.of("Set-Cookie"));
 
         var source = new UrlBasedCorsConfigurationSource();

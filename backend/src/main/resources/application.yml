@@ -6,7 +6,7 @@ server:
         name: MOVIE_APP_SESSION
         http-only: true
         same-site: Lax
-        secure: false
+        secure: ${SESSION_COOKIE_SECURE:false}
 
 spring:
   application:
@@ -39,6 +39,9 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       database: ${REDIS_DATABASE:0}
+
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
 
 embedding:
   base-url: ${EMBEDDING_BASE_URL:http://localhost:8000}
