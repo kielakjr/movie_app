@@ -6,6 +6,7 @@ import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import com.kielakjr.movie_app.cluster.Cluster;
 import com.kielakjr.movie_app.cluster.ClusterService;
+import com.kielakjr.movie_app.scoring.MovieScorer;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpSession;
 import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
@@ -26,9 +27,6 @@ public class SwipeService {
     private static final int EXPLOIT_POOL_SIZE = 25;
     private static final int EXPLORE_POOL_SIZE = 50;
     private static final float DISLIKE_SIMILARITY_THRESHOLD = 0.5f;
-    private static final float W_SIM = 0.55f;
-    private static final float W_POP = 0.30f;
-    private static final float W_NOISE = 0.15f;
 
     public Optional<MovieResponse> swipe(SwipeRequest request, HttpSession httpSession) {
         var state = sessionService.getState(httpSession);
@@ -81,15 +79,15 @@ public class SwipeService {
         if (candidates.isEmpty()) {
             return movieService.getUnseenMovie(excludeIds);
         }
-        double maxLogPop = maxLogPopularity(candidates);
+        double maxLogPop = MovieScorer.maxLogPopularity(candidates);
         MovieResponse best = null;
         double bestScore = -Double.MAX_VALUE;
         for (MovieResponse candidate : candidates) {
             float[] embedding = movieService.getEmbeddingById(candidate.id());
             double similarity = embedding == null ? 0.0
                     : ClusterService.cosineSimilarity(embedding, cluster.getCentroid());
-            double popNorm = normalizedPopularity(candidate, maxLogPop);
-            double score = W_SIM * similarity + W_POP * popNorm + W_NOISE * nextRandom();
+            double popNorm = MovieScorer.normalizedPopularity(candidate, maxLogPop);
+            double score = MovieScorer.score(similarity, popNorm, nextRandom());
             if (score > bestScore) {
                 bestScore = score;
                 best = candidate;
@@ -138,7 +136,7 @@ public class SwipeService {
         double total = 0.0;
         double[] weights = new double[pool.size()];
         for (int i = 0; i < pool.size(); i++) {
-            weights[i] = Math.log1p(safePopularity(pool.get(i))) + 1.0;
+            weights[i] = Math.log1p(MovieScorer.safePopularity(pool.get(i))) + 1.0;
             total += weights[i];
         }
         double pick = nextRandom() * total;
@@ -150,25 +148,6 @@ public class SwipeService {
             }
         }
         return pool.get(pool.size() - 1);
-    }
-
-    private static double normalizedPopularity(MovieResponse movie, double maxLogPop) {
-        if (maxLogPop <= 0.0) return 0.0;
-        return Math.log1p(safePopularity(movie)) / maxLogPop;
-    }
-
-    private static double maxLogPopularity(List<MovieResponse> movies) {
-        double max = 0.0;
-        for (MovieResponse m : movies) {
-            max = Math.max(max, Math.log1p(safePopularity(m)));
-        }
-        return max;
-    }
-
-    private static double safePopularity(MovieResponse movie) {
-        Double pop = movie.popularity();
-        if (pop == null || pop < 0.0) return 0.0;
-        return pop;
     }
 
     public double nextRandom() {

@@ -6,6 +6,7 @@ import com.kielakjr.movie_app.session.SessionService;
 import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import com.kielakjr.movie_app.cluster.Cluster;
 import com.kielakjr.movie_app.cluster.ClusterService;
+import com.kielakjr.movie_app.scoring.MovieScorer;
 import com.kielakjr.movie_app.recommend.dto.RecommendMovieResponse;
 import jakarta.servlet.http.HttpSession;
 
@@ -21,10 +22,6 @@ import lombok.RequiredArgsConstructor;
 public class RecommendService {
     private final MovieService movieService;
     private final SessionService sessionService;
-
-    private static final float W_SIM = 0.55f;
-    private static final float W_POP = 0.30f;
-    private static final float W_NOISE = 0.15f;
 
     public List<RecommendMovieResponse> getRecommendedMovies(HttpSession session, int limit) {
         var state = sessionService.getState(session);
@@ -61,10 +58,7 @@ public class RecommendService {
         if (similarMovies.isEmpty()) {
             return List.of();
         }
-        double maxLogPop = 0.0;
-        for (MovieResponse m : similarMovies) {
-            maxLogPop = Math.max(maxLogPop, Math.log1p(safePopularity(m)));
-        }
+        double maxLogPop = MovieScorer.maxLogPopularity(similarMovies);
         List<RecommendMovie> recommendations = new ArrayList<>();
         for (MovieResponse movie : similarMovies) {
             float[] movieEmbedding = movieService.getEmbeddingById(movie.id());
@@ -74,8 +68,8 @@ public class RecommendService {
                 throw new IllegalStateException("No movie found for reason embedding");
             }
             double similarity = ClusterService.cosineSimilarity(movieEmbedding, cluster.getCentroid());
-            double popNorm = maxLogPop <= 0.0 ? 0.0 : Math.log1p(safePopularity(movie)) / maxLogPop;
-            double score = W_SIM * similarity + W_POP * popNorm + W_NOISE * nextRandom();
+            double popNorm = MovieScorer.normalizedPopularity(movie, maxLogPop);
+            double score = MovieScorer.score(similarity, popNorm, nextRandom());
             var response = toRecommendMovieResponse(movie, reasonMovie);
             recommendations.add(new RecommendMovie(score, response));
         }
@@ -97,12 +91,6 @@ public class RecommendService {
 
     private RecommendMovieResponse toRecommendMovieResponse(MovieResponse movie, MovieResponse reason) {
         return new RecommendMovieResponse(movie, reason);
-    }
-
-    private static double safePopularity(MovieResponse movie) {
-        Double pop = movie.popularity();
-        if (pop == null || pop < 0.0) return 0.0;
-        return pop;
     }
 
     public double nextRandom() {
