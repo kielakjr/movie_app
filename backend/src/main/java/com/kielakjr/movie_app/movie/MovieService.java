@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -77,13 +78,31 @@ public class MovieService {
     @Transactional(readOnly = true)
     public float[] getEmbeddingById(Long id) {
         String raw = movieRepository.getEmbeddingByIdRaw(id);
-        if (raw == null) return null;
-        String[] parts = raw.substring(1, raw.length() - 1).split(",");
-        float[] result = new float[parts.length];
-        for (int i = 0; i < parts.length; i++) {
-            result[i] = Float.parseFloat(parts[i].trim());
+        return raw == null ? null : parseEmbedding(raw);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, float[]> getEmbeddingsByIds(Set<Long> ids) {
+        Map<Long, float[]> result = new HashMap<>();
+        for (Object[] row : movieRepository.getEmbeddingsByIds(ids)) {
+            Long movieId = ((Number) row[0]).longValue();
+            float[] embedding = parseEmbedding((String) row[1]);
+            if (embedding != null) result.put(movieId, embedding);
         }
         return result;
+    }
+
+    private static float[] parseEmbedding(String raw) {
+        try {
+            String[] parts = raw.substring(1, raw.length() - 1).split(",");
+            float[] result = new float[parts.length];
+            for (int i = 0; i < parts.length; i++) {
+                result[i] = Float.parseFloat(parts[i].trim());
+            }
+            return result;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Transactional(readOnly = true)

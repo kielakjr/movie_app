@@ -27,6 +27,7 @@ import com.kielakjr.movie_app.movie.dto.MovieResponse;
 import com.kielakjr.movie_app.cluster.Cluster;
 import org.mockito.InjectMocks;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.List;
 import java.util.Set;
@@ -66,16 +67,15 @@ public class RecommendServiceTest {
         }
 
         @Test
-        void throwsIfNoReasonMovie() {
+        void skipsMovieWhenNoReasonMovieFound() {
             Cluster cluster = new Cluster();
             cluster.addMovieEmbedding(new float[]{0.1f, 0.2f});
             state.getClusters().add(cluster);
             when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(createMovieResponse(2L)));
-            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{0.1f, 0.2f});
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(2L, new float[]{0.1f, 0.2f}));
             when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> recommendService.getRecommendedMovies(session, 10))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("No movie found for reason embedding");
+            var recommendations = recommendService.getRecommendedMovies(session, 10);
+            assertThat(recommendations).isEmpty();
         }
 
         @Test
@@ -85,7 +85,7 @@ public class RecommendServiceTest {
             state.getClusters().add(cluster);
             when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.of(createMovieResponse(1L)));
             when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(createMovieResponse(2L)));
-            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{0.1f, 0.2f});
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(2L, new float[]{0.1f, 0.2f}));
             var recommendations = recommendService.getRecommendedMovies(session, 10);
             verify(movieService).findSimilar(any(), eq(10), any());
             assertThat(recommendations).hasSize(1);
@@ -120,8 +120,9 @@ public class RecommendServiceTest {
                     false, "/p2.jpg", "/b2.jpg", new String[]{}, 1000.0, 8.0, 100);
 
             when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(lowPop, highPop));
-            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
-            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{1.0f, 0.0f});
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(
+                    1L, new float[]{1.0f, 0.0f},
+                    2L, new float[]{1.0f, 0.0f}));
             when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.of(lowPop));
 
             RecommendService spied = spy(recommendService);

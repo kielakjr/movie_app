@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpSession;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -58,20 +59,22 @@ public class RecommendService {
         if (similarMovies.isEmpty()) {
             return List.of();
         }
+        Set<Long> movieIds = similarMovies.stream().map(MovieResponse::id).collect(java.util.stream.Collectors.toSet());
+        Map<Long, float[]> embeddingMap = movieService.getEmbeddingsByIds(movieIds);
+
         double maxLogPop = MovieScorer.maxLogPopularity(similarMovies);
         List<RecommendMovie> recommendations = new ArrayList<>();
         for (MovieResponse movie : similarMovies) {
-            float[] movieEmbedding = movieService.getEmbeddingById(movie.id());
+            float[] movieEmbedding = embeddingMap.get(movie.id());
+            if (movieEmbedding == null) continue;
             float[] reasonEmbedding = findClosestClusterEmbedding(movieEmbedding, cluster.getMovieEmbeddings());
+            if (reasonEmbedding == null) continue;
             var reasonMovie = movieService.getMovieByEmbedding(reasonEmbedding).orElse(null);
-            if (reasonMovie == null) {
-                throw new IllegalStateException("No movie found for reason embedding");
-            }
+            if (reasonMovie == null) continue;
             double similarity = ClusterService.cosineSimilarity(movieEmbedding, cluster.getCentroid());
             double popNorm = MovieScorer.normalizedPopularity(movie, maxLogPop);
             double score = MovieScorer.score(similarity, popNorm, nextRandom());
-            var response = toRecommendMovieResponse(movie, reasonMovie);
-            recommendations.add(new RecommendMovie(score, response));
+            recommendations.add(new RecommendMovie(score, toRecommendMovieResponse(movie, reasonMovie)));
         }
         return recommendations;
     }

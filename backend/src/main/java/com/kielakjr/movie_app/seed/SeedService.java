@@ -100,15 +100,19 @@ public class SeedService {
 
         List<float[]> batchEmbeddings = embeddingClient.embedBatch(texts);
         Map<Long, float[]> embeddings = new HashMap<>();
-        if (batchEmbeddings.size() == saved.size()) {
-            for (int i = 0; i < saved.size(); i++) {
-                float[] embedding = batchEmbeddings.get(i);
-                if (embedding.length > 0) {
-                    embeddings.put(saved.get(i).getId(), embedding);
-                }
+        int matchCount = Math.min(saved.size(), batchEmbeddings.size());
+        if (batchEmbeddings.size() != saved.size()) {
+            log.warn("Batch embedding size mismatch: expected {}, got {} — processing {} entries", saved.size(), batchEmbeddings.size(), matchCount);
+        }
+        for (int i = 0; i < matchCount; i++) {
+            float[] embedding = batchEmbeddings.get(i);
+            if (embedding.length > 0) {
+                embeddings.put(saved.get(i).getId(), embedding);
             }
-        } else {
-            log.error("Batch embedding size mismatch: expected {}, got {}", saved.size(), batchEmbeddings.size());
+        }
+        int skipped = saved.size() - embeddings.size();
+        if (skipped > 0) {
+            log.warn("{} movies saved without embeddings — they will not appear in recommendations or search", skipped);
         }
 
         if (!embeddings.isEmpty()) {
