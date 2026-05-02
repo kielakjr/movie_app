@@ -1,6 +1,7 @@
 package com.kielakjr.movie_app.unit.tmdb;
 
 import com.kielakjr.movie_app.tmdb.TmdbRateLimitInterceptor;
+import io.github.bucket4j.BlockingBucket;
 import io.github.bucket4j.Bucket;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -26,6 +27,9 @@ class TmdbRateLimitInterceptorTest {
     private Bucket bucket;
 
     @Mock
+    private BlockingBucket blockingBucket;
+
+    @Mock
     private HttpRequest request;
 
     @Mock
@@ -41,6 +45,7 @@ class TmdbRateLimitInterceptorTest {
     @BeforeEach
     void setUp() {
         interceptor = new TmdbRateLimitInterceptor(bucket);
+        when(bucket.asBlocking()).thenReturn(blockingBucket);
     }
 
     @Nested
@@ -48,7 +53,6 @@ class TmdbRateLimitInterceptorTest {
 
         @Test
         void executesRequestOnceAndReturnsResponse() throws IOException {
-            when(bucket.tryConsume(1)).thenReturn(true);
             when(execution.execute(request, BODY)).thenReturn(response);
             when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(200));
 
@@ -66,7 +70,6 @@ class TmdbRateLimitInterceptorTest {
         void retriesRequestAndReturnsSecondResponse() throws IOException {
             ClientHttpResponse retryResponse = mock(ClientHttpResponse.class);
 
-            when(bucket.tryConsume(1)).thenReturn(true);
             when(execution.execute(request, BODY)).thenReturn(response, retryResponse);
             when(response.getStatusCode()).thenReturn(HttpStatusCode.valueOf(429));
 
@@ -78,17 +81,11 @@ class TmdbRateLimitInterceptorTest {
     }
 
     @Nested
-    class WhenInterruptedDuringSpin {
+    class WhenInterruptedDuringConsume {
 
         @Test
-        void setsInterruptFlagAndThrowsIOException() throws IOException {
-            Thread testThread = Thread.currentThread();
-
-            when(bucket.tryConsume(1))
-                .thenAnswer(inv -> {
-                    testThread.interrupt();
-                    return false;
-                });
+        void setsInterruptFlagAndThrowsIOException() throws InterruptedException {
+            doThrow(new InterruptedException()).when(blockingBucket).consume(1);
 
             assertThatThrownBy(() -> interceptor.intercept(request, BODY, execution))
                 .isInstanceOf(IOException.class)

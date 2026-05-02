@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,8 +17,10 @@ import java.util.Map;
 @Slf4j
 @Component
 public class EmbeddingClient {
+    private static final Duration TIMEOUT = Duration.ofSeconds(30);
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(TIMEOUT)
             .build();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -36,6 +39,7 @@ public class EmbeddingClient {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(embeddingUrl))
                     .header("Content-Type", "application/json")
+                    .timeout(TIMEOUT)
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
 
@@ -64,6 +68,7 @@ public class EmbeddingClient {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(batchEmbeddingUrl))
                     .header("Content-Type", "application/json")
+                    .timeout(Duration.ofMinutes(5))
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
 

@@ -3,6 +3,7 @@ package com.kielakjr.movie_app.tmdb;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import lombok.RequiredArgsConstructor;
 
@@ -17,7 +18,11 @@ public class TmdbConfig {
             @Value("${tmdb.api-key}") String apiKey,
             @Value("${tmdb.base-url}") String baseUrl) {
         if (apiKey.isBlank()) throw new IllegalStateException("tmdb.api-key must be set");
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10_000);
+        factory.setReadTimeout(10_000);
         return RestClient.builder()
+                .requestFactory(factory)
                 .requestInterceptor(tmdbRateLimitInterceptor)
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)

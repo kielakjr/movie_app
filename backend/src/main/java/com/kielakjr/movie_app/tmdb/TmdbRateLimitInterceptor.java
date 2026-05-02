@@ -21,14 +21,11 @@ public class TmdbRateLimitInterceptor implements ClientHttpRequestInterceptor {
             byte[] body,
             ClientHttpRequestExecution execution
     ) throws IOException {
-
-        while (!tmdbBucket.tryConsume(1)) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IOException(e);
-            }
+        try {
+            tmdbBucket.asBlocking().consume(1);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for TMDB rate limit token", e);
         }
 
         ClientHttpResponse response = execution.execute(request, body);
@@ -38,8 +35,8 @@ public class TmdbRateLimitInterceptor implements ClientHttpRequestInterceptor {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                throw new IOException("Interrupted during TMDB 429 backoff", e);
             }
-
             return execution.execute(request, body);
         }
 

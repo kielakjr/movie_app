@@ -11,9 +11,12 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
 
+cors:
+  allowed-origins: http://localhost:5173
+
 tmdb:
   api-key: test-key-for-integration-tests
-  base-url: https://api.themoviedb.org/3
+  base-url: http://localhost:9999
   images:
     poster-base-url: https://image.tmdb.org/t/p/w500
     backdrop-base-url: https://image.tmdb.org/t/p/w780
