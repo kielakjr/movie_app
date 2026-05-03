@@ -11,10 +11,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.server.ResponseStatusException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.util.List;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -46,14 +45,12 @@ public class SearchServiceTest {
         }
 
         @Test
-        void whenEmbeddingDisabled_throwsServiceUnavailable() {
+        void whenEmbeddingDisabled_fallsBackToLexicalSearch() {
             ReflectionTestUtils.setField(searchService, "embeddingEnabled", false);
-            ResponseStatusException ex = assertThrows(
-                ResponseStatusException.class,
-                () -> searchService.searchSimilar("anything", 5)
-            );
-            assertEquals(503, ex.getStatusCode().value());
-            verifyNoInteractions(embeddingClient, movieService);
+            when(movieService.searchByText("anything", 5)).thenReturn(List.of());
+            searchService.searchSimilar("anything", 5);
+            verify(movieService).searchByText("anything", 5);
+            verifyNoInteractions(embeddingClient);
         }
     }
 }
