@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py .
 
-RUN chown -R app:app /app
+RUN mkdir -p /app/.cache/huggingface && chown -R app:app /app
 USER app
 
 EXPOSE 8000

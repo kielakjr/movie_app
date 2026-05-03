@@ -35,10 +35,12 @@ services:
       context: ../embedding-service
     container_name: movie_app_embedding
     restart: unless-stopped
+    environment:
+      HF_HOME: /app/.cache/huggingface
     volumes:
-      - embedding_model_cache:/root/.cache/huggingface
+      - embedding_model_cache:/app/.cache/huggingface
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
