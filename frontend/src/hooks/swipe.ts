@@ -11,9 +11,10 @@ export const useNextSwipeMovie = () => {
   });
 };
 
-export const useSwipe = () => {
+export const useSwipe = (onError?: () => void) => {
   return useMutation({
     mutationFn: ({ movieId, action }: { movieId: number; action: SwipeAction }) =>
       postSwipe(movieId, action),
+    onError,
   });
 };

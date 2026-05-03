@@ -10,7 +10,12 @@ const MAX_ROTATION = 14;
 
 const Swipe = () => {
   const { data: initialMovie, isLoading, error } = useNextSwipeMovie();
-  const { mutate: swipe, isPending: swipePending } = useSwipe();
+  const [swipeError, setSwipeError] = useState<string | null>(null);
+  const { mutate: swipe, isPending: swipePending } = useSwipe(() => {
+    setFlying(null);
+    setDrag({ x: 0, y: 0 });
+    setSwipeError('Failed to record swipe. Please try again.');
+  });
   const { data: recommendations, isFetching: recsFetching, refetch: fetchRecs } = useRecommendations(5);
   const { mutate: resetSession, isPending: resetPending } = useResetSession();
 
@@ -82,6 +87,7 @@ const Swipe = () => {
 
   const launchCard = (dir: 'left' | 'right' | 'skip', action: 'LIKE' | 'DISLIKE' | 'SKIP') => {
     if (!canSwipe) return;
+    setSwipeError(null);
     animationDoneRef.current = false;
     pendingNextRef.current = null;
     setFlying(dir);
@@ -211,6 +217,8 @@ const Swipe = () => {
             </div>
           </div>
         </div>
+
+        {swipeError && <p className="swipe-error">{swipeError}</p>}
 
         <div className="swipe-actions">
           <button
