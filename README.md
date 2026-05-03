@@ -2,6 +2,8 @@
 
 A movie discovery app that learns your taste in real time from a swipe feed and serves personalised recommendations using semantic vector search.
 
+**Live demo:** [soothing-rejoicing-production-810e.up.railway.app](https://soothing-rejoicing-production-810e.up.railway.app)
+
 ![Java](https://img.shields.io/badge/Java-25-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0-brightgreen)
 ![React](https://img.shields.io/badge/React-19-blue)
