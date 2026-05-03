@@ -21,6 +21,11 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     @Query("SELECT m FROM Movie m WHERE m.id NOT IN :seenIds ORDER BY FUNCTION('random')")
     List<Movie> findUnseen(@Param("seenIds") Set<Long> seenIds, Pageable pageable);
 
+    @Query("SELECT m FROM Movie m WHERE LOWER(m.title) LIKE LOWER(CONCAT('%', :query, '%')) "
+            + "OR LOWER(m.overview) LIKE LOWER(CONCAT('%', :query, '%')) "
+            + "ORDER BY m.popularity DESC")
+    List<Movie> searchByText(@Param("query") String query, Pageable pageable);
+
     @Modifying
     @Query(value = "UPDATE movies SET embedding = CAST(:embedding AS vector) WHERE id = :id", nativeQuery = true)
     void updateEmbedding(@Param("id") Long id, @Param("embedding") String embedding);

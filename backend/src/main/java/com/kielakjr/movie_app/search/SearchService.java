@@ -5,9 +5,7 @@ import com.kielakjr.movie_app.movie.MovieService;
 import com.kielakjr.movie_app.embedding.EmbeddingClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @Service
@@ -21,7 +19,7 @@ public class SearchService {
 
     public List<MovieResponse> searchSimilar(String query, int limit) {
         if (!embeddingEnabled) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Semantic search is currently disabled.");
+            return movieService.searchByText(query, limit);
         }
         var queryEmbedding = embeddingClient.embed(query);
         if (queryEmbedding == null || queryEmbedding.length == 0) {

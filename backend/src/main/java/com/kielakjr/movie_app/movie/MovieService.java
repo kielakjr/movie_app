@@ -48,6 +48,13 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
+    public List<MovieResponse> searchByText(String query, int limit) {
+        return movieRepository.searchByText(query, PageRequest.of(0, limit)).stream()
+                .map(MovieService::toMovieResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<MovieResponse> findSimilar(float[] queryEmbedding, int limit) {
         return movieRepository.findSimilar(toVectorString(queryEmbedding), limit).stream()
                 .map(MovieService::toMovieResponse)
