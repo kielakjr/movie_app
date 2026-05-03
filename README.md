@@ -181,9 +181,3 @@ movie_app/
 ├── infra/                    # Docker Compose (dev + prod)
 └── .github/workflows/        # CI: backend verify + frontend lint/build
 ```
-
----
-
-## License
-
-MIT © [mkielak](https://github.com/mkielak)
