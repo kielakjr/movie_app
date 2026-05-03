@@ -2,15 +2,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN addgroup --system app && adduser --system --ingroup app app
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py .
 
-RUN mkdir -p /app/.cache/huggingface && chown -R app:app /app
-USER app
+RUN mkdir -p /app/.cache/huggingface
 
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
