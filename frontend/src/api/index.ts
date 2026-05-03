@@ -2,6 +2,7 @@ export * from './movies';
 export * from './swipe';
 export * from './recommend';
 export * from './session';
+export * from './capabilities';
 
 export function fetchWithCreds(
   input: RequestInfo | URL,

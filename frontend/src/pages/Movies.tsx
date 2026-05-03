@@ -1,4 +1,4 @@
-import { useDebounce, useMovies, useSearchSimilarMovies } from '../hooks';
+import { useCapabilities, useDebounce, useMovies, useSearchSimilarMovies } from '../hooks';
 import { useState } from 'react';
 import MovieCard from '../components/MovieCard';
 import { ArrowLeftIcon, ArrowRightIcon, SearchIcon } from '../components/Icons';
@@ -7,7 +7,11 @@ const Movies = () => {
   const [page, setPage] = useState(0);
   const { data, isLoading, error } = useMovies(page, 10);
   const [searchQuery, setSearchQuery, debouncedQuery] = useDebounce<string>('', 500);
-  const { data: similarMovies, isLoading: isSearching } = useSearchSimilarMovies(debouncedQuery);
+  const { data: capabilities } = useCapabilities();
+  const semanticSearchEnabled = capabilities?.semantic_search ?? true;
+  const { data: similarMovies, isLoading: isSearching } = useSearchSimilarMovies(
+    semanticSearchEnabled ? debouncedQuery : ''
+  );
 
   if (isLoading) return (
     <div className="state-center">
@@ -18,7 +22,7 @@ const Movies = () => {
   if (error) return <div className="state-center">Failed to load movies.</div>;
   if (!data) return <div className="state-center">No movies found.</div>;
 
-  const isSearchActive = debouncedQuery.trim().length > 0;
+  const isSearchActive = semanticSearchEnabled && debouncedQuery.trim().length > 0;
 
   return (
     <div className="page">
@@ -33,12 +37,18 @@ const Movies = () => {
         <SearchIcon />
         <input
           type="text"
-          placeholder="Search similar movies…"
-          value={searchQuery}
+          placeholder={semanticSearchEnabled ? 'Search similar movies…' : 'Semantic search is currently unavailable'}
+          value={semanticSearchEnabled ? searchQuery : ''}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-input"
+          disabled={!semanticSearchEnabled}
         />
       </div>
+      {!semanticSearchEnabled && (
+        <div className="search-disabled-notice">
+          Semantic search is temporarily disabled. You can still browse the catalog below.
+        </div>
+      )}
 
       {isSearchActive ? (
         <div className="similar-movies">

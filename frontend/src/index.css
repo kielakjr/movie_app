@@ -211,6 +211,21 @@ a {
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
+.search-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.search-disabled-notice {
+  margin: -8px 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface, rgba(255, 255, 255, 0.03));
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
 .similar-movies { min-height: 300px; }
 
 .section-title {
