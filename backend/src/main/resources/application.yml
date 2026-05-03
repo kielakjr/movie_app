@@ -44,6 +44,7 @@ cors:
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
 
 embedding:
+  enabled: ${EMBEDDING_ENABLED:true}
   base-url: ${EMBEDDING_BASE_URL:http://localhost:8000}
 
 tmdb:
