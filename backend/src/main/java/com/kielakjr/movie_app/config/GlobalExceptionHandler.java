@@ -1,5 +1,6 @@
 package com.kielakjr.movie_app.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -56,9 +58,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleAllExceptions(Exception ex) {
+        log.error("Unexpected error", ex);
         Map<String, String> response = new HashMap<>();
         response.put("error", "An unexpected error occurred");
-        response.put("message", ex.getMessage());
         return ResponseEntity.internalServerError().body(response);
     }
 }
