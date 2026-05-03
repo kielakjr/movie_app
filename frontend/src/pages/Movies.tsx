@@ -9,9 +9,7 @@ const Movies = () => {
   const [searchQuery, setSearchQuery, debouncedQuery] = useDebounce<string>('', 500);
   const { data: capabilities } = useCapabilities();
   const semanticSearchEnabled = capabilities?.semantic_search ?? true;
-  const { data: similarMovies, isLoading: isSearching } = useSearchSimilarMovies(
-    semanticSearchEnabled ? debouncedQuery : ''
-  );
+  const { data: similarMovies, isLoading: isSearching } = useSearchSimilarMovies(debouncedQuery);
 
   if (isLoading) return (
     <div className="state-center">
@@ -22,7 +20,7 @@ const Movies = () => {
   if (error) return <div className="state-center">Failed to load movies.</div>;
   if (!data) return <div className="state-center">No movies found.</div>;
 
-  const isSearchActive = semanticSearchEnabled && debouncedQuery.trim().length > 0;
+  const isSearchActive = debouncedQuery.trim().length > 0;
 
   return (
     <div className="page">
@@ -37,16 +35,15 @@ const Movies = () => {
         <SearchIcon />
         <input
           type="text"
-          placeholder={semanticSearchEnabled ? 'Search similar movies…' : 'Semantic search is currently unavailable'}
-          value={semanticSearchEnabled ? searchQuery : ''}
+          placeholder={semanticSearchEnabled ? 'Search similar movies…' : 'Search movies by title or description…'}
+          value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-input"
-          disabled={!semanticSearchEnabled}
         />
       </div>
       {!semanticSearchEnabled && (
         <div className="search-disabled-notice">
-          Semantic search is temporarily disabled. You can still browse the catalog below.
+          Semantic search is temporarily disabled. Falling back to keyword search.
         </div>
       )}
 
