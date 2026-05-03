@@ -11,6 +11,12 @@ const MAX_ROTATION = 14;
 const Swipe = () => {
   const { data: initialMovie, isLoading, error } = useNextSwipeMovie();
   const [swipeError, setSwipeError] = useState<string | null>(null);
+  const [likesCount, setLikesCount] = useState(0);
+  const [showRecs, setShowRecs] = useState(false);
+  const [drag, setDrag] = useState({ x: 0, y: 0 });
+  const [flying, setFlying] = useState<'left' | 'right' | 'skip' | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
   const { mutate: swipe, isPending: swipePending } = useSwipe(() => {
     setFlying(null);
     setDrag({ x: 0, y: 0 });
@@ -18,12 +24,6 @@ const Swipe = () => {
   });
   const { data: recommendations, isFetching: recsFetching, refetch: fetchRecs } = useRecommendations(5);
   const { mutate: resetSession, isPending: resetPending } = useResetSession();
-
-  const [likesCount, setLikesCount] = useState(0);
-  const [showRecs, setShowRecs] = useState(false);
-  const [drag, setDrag] = useState({ x: 0, y: 0 });
-  const [flying, setFlying] = useState<'left' | 'right' | 'skip' | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
 
   const [current, setCurrent] = useState<Movie | null | undefined>(undefined);
   const effectiveCurrent = current === undefined ? (initialMovie ?? null) : current;
