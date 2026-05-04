@@ -117,7 +117,7 @@ class SwipeServiceTest {
             @Test
             void addsMovieToClusters() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.LIKE), session);
-                verify(clusterService).addToClusters(eq(MOVIE_EMBEDDING), eq(state.getClusters()));
+                verify(clusterService).addToClusters(eq(42L), eq(MOVIE_EMBEDDING), eq(state.getClusters()));
             }
 
             @Test
@@ -125,7 +125,7 @@ class SwipeServiceTest {
                 swipeService.swipe(new SwipeRequest(1L, SwipeAction.LIKE), session);
                 swipeService.swipe(new SwipeRequest(2L, SwipeAction.LIKE), session);
                 swipeService.swipe(new SwipeRequest(3L, SwipeAction.LIKE), session);
-                verify(clusterService, times(3)).addToClusters(any(), any());
+                verify(clusterService, times(3)).addToClusters(any(), any(), any());
             }
 
             @Test
@@ -163,7 +163,7 @@ class SwipeServiceTest {
             void whenEmbeddingIsNull_doesNotCallClusterService() {
                 when(movieService.getEmbeddingById(42L)).thenReturn(null);
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-                verify(clusterService, never()).addToClusters(any(), any());
+                verify(clusterService, never()).addToClusters(any(), any(), any());
             }
 
             @Nested
@@ -179,13 +179,13 @@ class SwipeServiceTest {
                 @Test
                 void addsToDislikedClusters() {
                     swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-                    verify(clusterService).addToClusters(eq(MOVIE_EMBEDDING), eq(state.getDislikedClusters()));
+                    verify(clusterService).addToClusters(eq(42L), eq(MOVIE_EMBEDDING), eq(state.getDislikedClusters()));
                 }
 
                 @Test
                 void doesNotAddToLikedClusters() {
                     swipeService.swipe(new SwipeRequest(42L, SwipeAction.DISLIKE), session);
-                    verify(clusterService, never()).addToClusters(any(), same(state.getClusters()));
+                    verify(clusterService, never()).addToClusters(any(), any(), same(state.getClusters()));
                 }
 
                 @Test
@@ -220,7 +220,7 @@ class SwipeServiceTest {
             @Test
             void doesNotCallClusterService() {
                 swipeService.swipe(new SwipeRequest(42L, SwipeAction.SKIP), session);
-                verify(clusterService, never()).addToClusters(any(), any());
+                verify(clusterService, never()).addToClusters(any(), any(), any());
             }
         }
     }
@@ -305,7 +305,7 @@ class SwipeServiceTest {
         void filtersOutMoviesSimilarToDislikedClusters() {
             float[] dislikedCentroid = {1.0f, 0.0f};
             Cluster dislikedCluster = new Cluster();
-            dislikedCluster.addMovieEmbedding(dislikedCentroid);
+            dislikedCluster.addMovie(0L, dislikedCentroid);
             state.getDislikedClusters().add(dislikedCluster);
 
             when(movieService.findUnseenPool(any(), anyInt()))
@@ -324,7 +324,7 @@ class SwipeServiceTest {
         void allCandidatesFilteredOut_fallsBackToUnfilteredPool() {
             float[] dislikedCentroid = {1.0f, 0.0f};
             Cluster dislikedCluster = new Cluster();
-            dislikedCluster.addMovieEmbedding(dislikedCentroid);
+            dislikedCluster.addMovie(0L, dislikedCentroid);
             state.getDislikedClusters().add(dislikedCluster);
 
             when(movieService.findUnseenPool(any(), anyInt()))
@@ -348,7 +348,7 @@ class SwipeServiceTest {
         @BeforeEach
         void setUp() {
             Cluster cluster = new Cluster();
-            cluster.addMovieEmbedding(centroid);
+            cluster.addMovie(0L, centroid);
             state.getClusters().add(cluster);
             spyService = spy(swipeService);
         }

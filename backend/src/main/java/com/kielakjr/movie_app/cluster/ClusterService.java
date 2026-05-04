@@ -8,14 +8,14 @@ import java.util.List;
 public class ClusterService {
     private static final float CLUSTER_DISTANCE_THRESHOLD = 0.6f;
 
-    public void addToClusters(float[] embedding, List<Cluster> clusters) {
+    public void addToClusters(Long movieId, float[] embedding, List<Cluster> clusters) {
         Cluster bestCluster = findBestCluster(embedding, clusters);
         if (bestCluster == null || distanceToCluster(embedding, bestCluster) > CLUSTER_DISTANCE_THRESHOLD) {
             Cluster newCluster = new Cluster();
-            newCluster.addMovieEmbedding(embedding);
+            newCluster.addMovie(movieId, embedding);
             clusters.add(newCluster);
         } else {
-            bestCluster.addMovieEmbedding(embedding);
+            bestCluster.addMovie(movieId, embedding);
         }
     }
 

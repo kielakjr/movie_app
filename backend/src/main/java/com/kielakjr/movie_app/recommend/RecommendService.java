@@ -59,17 +59,19 @@ public class RecommendService {
         if (similarMovies.isEmpty()) {
             return List.of();
         }
-        Set<Long> movieIds = similarMovies.stream().map(MovieResponse::id).collect(java.util.stream.Collectors.toSet());
-        Map<Long, float[]> embeddingMap = movieService.getEmbeddingsByIds(movieIds);
+        Set<Long> ids = new HashSet<>();
+        similarMovies.forEach(m -> ids.add(m.id()));
+        ids.addAll(cluster.getMovieIds());
+        Map<Long, float[]> embeddingMap = movieService.getEmbeddingsByIds(ids);
 
         double maxLogPop = MovieScorer.maxLogPopularity(similarMovies);
         List<RecommendMovie> recommendations = new ArrayList<>();
         for (MovieResponse movie : similarMovies) {
             float[] movieEmbedding = embeddingMap.get(movie.id());
             if (movieEmbedding == null) continue;
-            float[] reasonEmbedding = findClosestClusterEmbedding(movieEmbedding, cluster.getMovieEmbeddings());
-            if (reasonEmbedding == null) continue;
-            var reasonMovie = movieService.getMovieByEmbedding(reasonEmbedding).orElse(null);
+            Long reasonId = findClosestClusterMovieId(movieEmbedding, cluster.getMovieIds(), embeddingMap);
+            if (reasonId == null) continue;
+            var reasonMovie = movieService.getMovieById(reasonId).orElse(null);
             if (reasonMovie == null) continue;
             double similarity = ClusterService.cosineSimilarity(movieEmbedding, cluster.getCentroid());
             double popNorm = MovieScorer.normalizedPopularity(movie, maxLogPop);
@@ -79,14 +81,16 @@ public class RecommendService {
         return recommendations;
     }
 
-    private float[] findClosestClusterEmbedding(float[] target, List<float[]> clusterEmbeddings) {
-        float[] best = null;
+    private Long findClosestClusterMovieId(float[] target, List<Long> clusterMovieIds, Map<Long, float[]> embeddingMap) {
+        Long best = null;
         float bestSimilarity = -Float.MAX_VALUE;
-        for (float[] candidate : clusterEmbeddings) {
+        for (Long id : clusterMovieIds) {
+            float[] candidate = embeddingMap.get(id);
+            if (candidate == null) continue;
             float similarity = ClusterService.cosineSimilarity(target, candidate);
             if (similarity > bestSimilarity) {
                 bestSimilarity = similarity;
-                best = candidate;
+                best = id;
             }
         }
         return best;

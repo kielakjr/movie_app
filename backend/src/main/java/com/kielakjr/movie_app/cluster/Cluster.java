@@ -4,43 +4,39 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
 public class Cluster implements Serializable {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
     private static final float RECENCY_DECAY = 0.9f;
 
-    private List<float[]> movieEmbeddings = new ArrayList<>();
-    private float[] centroid;
+    private List<Long> movieIds = new ArrayList<>();
+    private float[] runningSum;
+    private float weightSum = 0.0f;
 
-    public void addMovieEmbedding(float[] embedding) {
-        movieEmbeddings.add(embedding);
-        updateCentroid();
+    public void addMovie(Long movieId, float[] embedding) {
+        movieIds.add(movieId);
+        if (runningSum == null) {
+            runningSum = new float[embedding.length];
+        }
+        for (int i = 0; i < embedding.length; i++) {
+            runningSum[i] = runningSum[i] * RECENCY_DECAY + embedding[i];
+        }
+        weightSum = weightSum * RECENCY_DECAY + 1.0f;
     }
 
-    private void updateCentroid() {
-        if (movieEmbeddings.isEmpty()) {
-            centroid = null;
-            return;
+    public float[] getCentroid() {
+        if (runningSum == null || weightSum == 0.0f) {
+            return null;
         }
-        int n = movieEmbeddings.size();
-        int dims = movieEmbeddings.get(0).length;
-        centroid = new float[dims];
-        float weightSum = 0.0f;
-        for (int idx = 0; idx < n; idx++) {
-            float weight = (float) Math.pow(RECENCY_DECAY, n - 1 - idx);
-            float[] embedding = movieEmbeddings.get(idx);
-            for (int i = 0; i < dims; i++) {
-                centroid[i] += embedding[i] * weight;
-            }
-            weightSum += weight;
+        float[] centroid = new float[runningSum.length];
+        for (int i = 0; i < runningSum.length; i++) {
+            centroid[i] = runningSum[i] / weightSum;
         }
-        for (int i = 0; i < dims; i++) {
-            centroid[i] /= weightSum;
-        }
+        return centroid;
     }
 }

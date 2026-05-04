@@ -40,7 +40,7 @@ public class SwipeService {
                 state.setLikesCount(state.getLikesCount() + 1);
                 var movieEmbedding = movieService.getEmbeddingById(request.movieId());
                 if (movieEmbedding != null) {
-                    clusterService.addToClusters(movieEmbedding, state.getClusters());
+                    clusterService.addToClusters(request.movieId(), movieEmbedding, state.getClusters());
                 }
             }
             case DISLIKE -> {
@@ -48,7 +48,7 @@ public class SwipeService {
                 state.getDislikedMovieIds().add(request.movieId());
                 var movieEmbedding = movieService.getEmbeddingById(request.movieId());
                 if (movieEmbedding != null) {
-                    clusterService.addToClusters(movieEmbedding, state.getDislikedClusters());
+                    clusterService.addToClusters(request.movieId(), movieEmbedding, state.getDislikedClusters());
                 }
             }
             case SKIP -> state.getSeenMovieIds().add(request.movieId());
