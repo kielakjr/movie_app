@@ -201,15 +201,20 @@ class RecommendIntegrationTest extends BaseIntegrationTest {
     }
 
     private void seedUserEmbedding(Cookie c, float[] embedding) {
+        Long seedMovieId = jdbcTemplate.queryForObject(
+                "INSERT INTO movies (tmdb_id, title, adult, embedding) VALUES (999999, 'Seed', false, CAST(? AS vector)) RETURNING id",
+                Long.class, toVectorString(embedding));
         SwipeSessionState state = new SwipeSessionState();
         var cluster = new Cluster();
-        cluster.addMovieEmbedding(embedding);
+        cluster.addMovie(seedMovieId, embedding);
         state.getClusters().add(cluster);
+        state.getLikedMovieIds().add(seedMovieId);
+        state.getSeenMovieIds().add(seedMovieId);
 
         String sessionId = decodeSessionId(c.getValue());
         Session session = sessionRepository.findById(sessionId);
         if (session == null) throw new IllegalStateException("Session not found in repository: " + sessionId);
-        session.setAttribute("STATE", state);
+        session.setAttribute("STATE_V2", state);
         saveTyped(session);
     }
 

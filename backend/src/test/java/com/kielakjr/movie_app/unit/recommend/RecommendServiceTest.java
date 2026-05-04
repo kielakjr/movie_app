@@ -69,11 +69,13 @@ public class RecommendServiceTest {
         @Test
         void skipsMovieWhenNoReasonMovieFound() {
             Cluster cluster = new Cluster();
-            cluster.addMovieEmbedding(new float[]{0.1f, 0.2f});
+            cluster.addMovie(1L, new float[]{0.1f, 0.2f});
             state.getClusters().add(cluster);
             when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(createMovieResponse(2L)));
-            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(2L, new float[]{0.1f, 0.2f}));
-            when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.empty());
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(
+                    1L, new float[]{0.1f, 0.2f},
+                    2L, new float[]{0.1f, 0.2f}));
+            when(movieService.getMovieById(any())).thenReturn(Optional.empty());
             var recommendations = recommendService.getRecommendedMovies(session, 10);
             assertThat(recommendations).isEmpty();
         }
@@ -81,11 +83,13 @@ public class RecommendServiceTest {
         @Test
         void returnsRecommendations() {
             Cluster cluster = new Cluster();
-            cluster.addMovieEmbedding(new float[]{0.1f, 0.2f});
+            cluster.addMovie(1L, new float[]{0.1f, 0.2f});
             state.getClusters().add(cluster);
-            when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.of(createMovieResponse(1L)));
+            when(movieService.getMovieById(1L)).thenReturn(Optional.of(createMovieResponse(1L)));
             when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(createMovieResponse(2L)));
-            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(2L, new float[]{0.1f, 0.2f}));
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(
+                    1L, new float[]{0.1f, 0.2f},
+                    2L, new float[]{0.1f, 0.2f}));
             var recommendations = recommendService.getRecommendedMovies(session, 10);
             verify(movieService).findSimilar(any(), eq(10), any());
             assertThat(recommendations).hasSize(1);
@@ -96,7 +100,7 @@ public class RecommendServiceTest {
         @Test
         void likedAndDislikedMovies_areBothExcludedFromRecommendations() {
             Cluster cluster = new Cluster();
-            cluster.addMovieEmbedding(new float[]{0.1f, 0.2f});
+            cluster.addMovie(1L, new float[]{0.1f, 0.2f});
             state.getClusters().add(cluster);
             state.getLikedMovieIds().add(10L);
             state.getDislikedMovieIds().add(20L);
@@ -111,7 +115,7 @@ public class RecommendServiceTest {
         @Test
         void popularityInfluencesOrdering_whenSimilarityIsTied() {
             Cluster cluster = new Cluster();
-            cluster.addMovieEmbedding(new float[]{1.0f, 0.0f});
+            cluster.addMovie(99L, new float[]{1.0f, 0.0f});
             state.getClusters().add(cluster);
 
             MovieResponse lowPop = new MovieResponse(1L, 101L, "Low", "ov", "2024-01-01", "en",
@@ -122,8 +126,9 @@ public class RecommendServiceTest {
             when(movieService.findSimilar(any(), anyInt(), any())).thenReturn(List.of(lowPop, highPop));
             when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(
                     1L, new float[]{1.0f, 0.0f},
-                    2L, new float[]{1.0f, 0.0f}));
-            when(movieService.getMovieByEmbedding(any())).thenReturn(Optional.of(lowPop));
+                    2L, new float[]{1.0f, 0.0f},
+                    99L, new float[]{1.0f, 0.0f}));
+            when(movieService.getMovieById(99L)).thenReturn(Optional.of(lowPop));
 
             RecommendService spied = spy(recommendService);
             doReturn(0.0).when(spied).nextRandom();
@@ -138,7 +143,7 @@ public class RecommendServiceTest {
         @Test
         void onlyDislikedMovies_areExcludedWhenNoLikes() {
             Cluster cluster = new Cluster();
-            cluster.addMovieEmbedding(new float[]{0.1f, 0.2f});
+            cluster.addMovie(1L, new float[]{0.1f, 0.2f});
             state.getClusters().add(cluster);
             state.getDislikedMovieIds().add(99L);
 
