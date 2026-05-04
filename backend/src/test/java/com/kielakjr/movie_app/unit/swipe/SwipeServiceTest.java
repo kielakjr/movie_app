@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpSession;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -309,8 +310,9 @@ class SwipeServiceTest {
 
             when(movieService.findUnseenPool(any(), anyInt()))
                     .thenReturn(List.of(createMovieResponse(1L, 5.0), createMovieResponse(2L, 5.0)));
-            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.05f});
-            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{0.0f, 1.0f});
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(
+                    1L, new float[]{1.0f, 0.05f},
+                    2L, new float[]{0.0f, 1.0f}));
 
             var result = spyService.getNextFeed(session);
 
@@ -327,7 +329,7 @@ class SwipeServiceTest {
 
             when(movieService.findUnseenPool(any(), anyInt()))
                     .thenReturn(List.of(createMovieResponse(1L, 5.0)));
-            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(1L, new float[]{1.0f, 0.0f}));
 
             var result = spyService.getNextFeed(session);
 
@@ -357,8 +359,9 @@ class SwipeServiceTest {
 
             when(movieService.findSimilar(any(), anyInt(), any()))
                     .thenReturn(List.of(createMovieResponse(1L, 1.0), createMovieResponse(2L, 1000.0)));
-            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
-            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{1.0f, 0.0f});
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(
+                    1L, new float[]{1.0f, 0.0f},
+                    2L, new float[]{1.0f, 0.0f}));
 
             var result = spyService.getNextFeed(session);
 
@@ -372,8 +375,9 @@ class SwipeServiceTest {
 
             when(movieService.findSimilar(any(), anyInt(), any()))
                     .thenReturn(List.of(createMovieResponse(1L, 1.0), createMovieResponse(2L, 1000.0)));
-            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
-            when(movieService.getEmbeddingById(2L)).thenReturn(new float[]{0.0f, 1.0f});
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(
+                    1L, new float[]{1.0f, 0.0f},
+                    2L, new float[]{0.0f, 1.0f}));
 
             var result = spyService.getNextFeed(session);
 
@@ -398,7 +402,7 @@ class SwipeServiceTest {
             doReturn(0.9, 0.0, 0.0).when(spyService).nextRandom();
             when(movieService.findSimilar(any(), anyInt(), any()))
                     .thenReturn(List.of(createMovieResponse(1L, 1.0)));
-            when(movieService.getEmbeddingById(1L)).thenReturn(new float[]{1.0f, 0.0f});
+            when(movieService.getEmbeddingsByIds(any())).thenReturn(Map.of(1L, new float[]{1.0f, 0.0f}));
 
             spyService.getNextFeed(session);
 

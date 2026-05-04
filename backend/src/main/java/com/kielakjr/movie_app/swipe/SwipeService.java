@@ -11,10 +11,12 @@ import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpSession;
 import com.kielakjr.movie_app.swipe.dto.SwipeRequest;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -79,11 +81,13 @@ public class SwipeService {
         if (candidates.isEmpty()) {
             return movieService.getUnseenMovie(excludeIds);
         }
+        Map<Long, float[]> embeddings = movieService.getEmbeddingsByIds(
+                candidates.stream().map(MovieResponse::id).collect(Collectors.toSet()));
         double maxLogPop = MovieScorer.maxLogPopularity(candidates);
         MovieResponse best = null;
         double bestScore = -Double.MAX_VALUE;
         for (MovieResponse candidate : candidates) {
-            float[] embedding = movieService.getEmbeddingById(candidate.id());
+            float[] embedding = embeddings.get(candidate.id());
             double similarity = embedding == null ? 0.0
                     : ClusterService.cosineSimilarity(embedding, cluster.getCentroid());
             double popNorm = MovieScorer.normalizedPopularity(candidate, maxLogPop);
@@ -110,9 +114,11 @@ public class SwipeService {
         if (dislikedClusters.isEmpty()) {
             return pool;
         }
+        Map<Long, float[]> embeddings = movieService.getEmbeddingsByIds(
+                pool.stream().map(MovieResponse::id).collect(Collectors.toSet()));
         List<MovieResponse> kept = new ArrayList<>();
         for (MovieResponse movie : pool) {
-            float[] embedding = movieService.getEmbeddingById(movie.id());
+            float[] embedding = embeddings.get(movie.id());
             if (embedding == null) {
                 kept.add(movie);
                 continue;
