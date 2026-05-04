@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpSession;
 
 @Service
 public class SessionService {
-    private static final String KEY = "STATE";
+    private static final String KEY = "STATE_V2";
 
     public SwipeSessionState getState(HttpSession session) {
         var state = (SwipeSessionState) session.getAttribute(KEY);

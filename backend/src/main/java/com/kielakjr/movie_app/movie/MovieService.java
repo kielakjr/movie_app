@@ -113,6 +113,11 @@ public class MovieService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<MovieResponse> getMovieById(Long id) {
+        return movieRepository.findById(id).map(MovieService::toMovieResponse);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<MovieResponse> getMovieByEmbedding(float[] embedding) {
         String vec = toVectorString(embedding);
         return movieRepository.findByEmbedding(vec).map(MovieService::toMovieResponse);
