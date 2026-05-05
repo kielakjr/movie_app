@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { useNextSwipeMovie, useSwipe, useRecommendations, useResetSession } from '../hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNextSwipeMovie, useSwipe, useRecommendations, useResetSession, useSession } from '../hooks';
 import type { Movie } from '../types';
 import RecommendationsModal from '../components/RecommendationsModal';
 import { FilmIcon, HeartIcon, SkipIcon, StarIcon, XIcon } from '../components/Icons';
@@ -9,9 +10,11 @@ const DRAG_THRESHOLD = 80;
 const MAX_ROTATION = 14;
 
 const Swipe = () => {
+  const queryClient = useQueryClient();
   const { data: initialMovie, isLoading, error } = useNextSwipeMovie();
+  const { data: session } = useSession();
+  const likesCount = session?.likesCount ?? 0;
   const [swipeError, setSwipeError] = useState<string | null>(null);
-  const [likesCount, setLikesCount] = useState(0);
   const [showRecs, setShowRecs] = useState(false);
   const [drag, setDrag] = useState({ x: 0, y: 0 });
   const [flying, setFlying] = useState<'left' | 'right' | 'skip' | null>(null);
@@ -39,7 +42,6 @@ const Swipe = () => {
     resetSession(undefined, {
       onSuccess: () => {
         setCurrent(undefined);
-        setLikesCount(0);
         setShowRecs(false);
         setDrag({ x: 0, y: 0 });
         setFlying(null);
@@ -95,11 +97,11 @@ const Swipe = () => {
       onSuccess: (nextMovie) => {
         if (action === 'LIKE') {
           const count = likesCount + 1;
-          setLikesCount(count);
           if (count % RECS_EVERY_N_LIKES === 0) {
             fetchRecs();
             setShowRecs(true);
           }
+          queryClient.invalidateQueries({ queryKey: ['session'] });
         }
         if (animationDoneRef.current) {
           commitNext(nextMovie);
