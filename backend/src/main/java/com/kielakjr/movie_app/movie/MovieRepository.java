@@ -18,8 +18,23 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     @Query("SELECT m.tmdbId FROM Movie m")
     Set<Long> findAllTmdbIds();
 
-    @Query("SELECT m FROM Movie m WHERE m.id NOT IN :seenIds ORDER BY FUNCTION('random')")
-    List<Movie> findUnseen(@Param("seenIds") Set<Long> seenIds, Pageable pageable);
+    @Query(value = """
+            SELECT * FROM movies TABLESAMPLE BERNOULLI(:samplePct)
+            WHERE NOT (id = ANY(CAST(:seenIds AS bigint[])))
+            ORDER BY random()
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Movie> findUnseenSampled(@Param("seenIds") Long[] seenIds,
+                                  @Param("samplePct") double samplePct,
+                                  @Param("limit") int limit);
+
+    @Query(value = """
+            SELECT * FROM movies
+            WHERE NOT (id = ANY(CAST(:seenIds AS bigint[])))
+            ORDER BY random()
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<Movie> findUnseen(@Param("seenIds") Long[] seenIds, @Param("limit") int limit);
 
     @Query("SELECT m FROM Movie m WHERE LOWER(m.title) LIKE LOWER(CONCAT('%', :query, '%')) "
             + "OR LOWER(m.overview) LIKE LOWER(CONCAT('%', :query, '%')) "

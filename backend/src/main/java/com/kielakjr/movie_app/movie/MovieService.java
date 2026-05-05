@@ -72,15 +72,24 @@ public class MovieService {
 
     @Transactional(readOnly = true)
     public Optional<MovieResponse> getUnseenMovie(Set<Long> seenIds) {
-        return movieRepository.findUnseen(seenIds, PageRequest.of(0, 1))
-                .stream().findFirst().map(MovieService::toMovieResponse);
+        return findUnseenInternal(seenIds, 1).stream()
+                .findFirst().map(MovieService::toMovieResponse);
     }
 
     @Transactional(readOnly = true)
     public List<MovieResponse> findUnseenPool(Set<Long> seenIds, int limit) {
-        return movieRepository.findUnseen(seenIds, PageRequest.of(0, limit))
-                .stream().map(MovieService::toMovieResponse).collect(Collectors.toList());
+        return findUnseenInternal(seenIds, limit).stream()
+                .map(MovieService::toMovieResponse).collect(Collectors.toList());
     }
+
+    private List<Movie> findUnseenInternal(Set<Long> seenIds, int limit) {
+        Long[] seen = seenIds.toArray(new Long[0]);
+        List<Movie> sampled = movieRepository.findUnseenSampled(seen, UNSEEN_SAMPLE_PCT, limit);
+        if (sampled.size() >= limit) return sampled;
+        return movieRepository.findUnseen(seen, limit);
+    }
+
+    private static final double UNSEEN_SAMPLE_PCT = 5.0;
 
     @Transactional(readOnly = true)
     public float[] getEmbeddingById(Long id) {

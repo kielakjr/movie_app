@@ -21,10 +21,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.eq;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 class MovieServiceTest {
@@ -136,7 +138,7 @@ class MovieServiceTest {
                     .voteAverage(5.0).voteCount(100)
                     .build();
 
-            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of(movie));
+            when(movieRepository.findUnseenSampled(any(), anyDouble(), anyInt())).thenReturn(List.of(movie));
 
             var result = movieService.getUnseenMovie(Set.of()).orElseThrow();
             assertThat(result.id()).isEqualTo(42L);
@@ -146,18 +148,22 @@ class MovieServiceTest {
 
         @Test
         void returnsEmptyWhenRepositoryFindsNothing() {
-            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of());
+            when(movieRepository.findUnseenSampled(any(), anyDouble(), anyInt())).thenReturn(List.of());
+            when(movieRepository.findUnseen(any(), anyInt())).thenReturn(List.of());
 
             assertThat(movieService.getUnseenMovie(Set.of(101L, 102L))).isEmpty();
         }
 
         @Test
         void passesSeenIdsToRepository() {
-            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of());
+            when(movieRepository.findUnseenSampled(any(), anyDouble(), anyInt())).thenReturn(List.of());
+            when(movieRepository.findUnseen(any(), anyInt())).thenReturn(List.of());
 
             movieService.getUnseenMovie(Set.of(101L, 102L));
 
-            verify(movieRepository).findUnseen(eq(Set.of(101L, 102L)), any());
+            ArgumentCaptor<Long[]> captor = ArgumentCaptor.forClass(Long[].class);
+            verify(movieRepository).findUnseen(captor.capture(), eq(1));
+            assertThat(captor.getValue()).containsExactlyInAnyOrder(101L, 102L);
         }
 
     }
@@ -176,18 +182,34 @@ class MovieServiceTest {
 
         @Test
         void delegatesToRepositoryWithLimit() {
-            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of(buildMovie(1L), buildMovie(2L)));
+            when(movieRepository.findUnseenSampled(any(), anyDouble(), anyInt()))
+                    .thenReturn(List.of(buildMovie(1L), buildMovie(2L)));
 
-            var pool = movieService.findUnseenPool(Set.of(99L), 50);
+            var pool = movieService.findUnseenPool(Set.of(99L), 2);
 
             assertThat(pool).hasSize(2);
             assertThat(pool.get(0).id()).isEqualTo(1L);
-            verify(movieRepository).findUnseen(eq(Set.of(99L)), eq(PageRequest.of(0, 50)));
+
+            ArgumentCaptor<Long[]> captor = ArgumentCaptor.forClass(Long[].class);
+            verify(movieRepository).findUnseenSampled(captor.capture(), anyDouble(), eq(2));
+            assertThat(captor.getValue()).containsExactly(99L);
         }
 
         @Test
-        void returnsEmptyWhenRepositoryFindsNothing() {
-            when(movieRepository.findUnseen(any(), any())).thenReturn(List.of());
+        void fallsBackToFullScanWhenSampleTooSmall() {
+            when(movieRepository.findUnseenSampled(any(), anyDouble(), anyInt())).thenReturn(List.of());
+            when(movieRepository.findUnseen(any(), anyInt())).thenReturn(List.of(buildMovie(7L)));
+
+            var pool = movieService.findUnseenPool(Set.of(), 25);
+
+            assertThat(pool).hasSize(1);
+            verify(movieRepository).findUnseen(any(), eq(25));
+        }
+
+        @Test
+        void returnsEmptyWhenBothQueriesFindNothing() {
+            when(movieRepository.findUnseenSampled(any(), anyDouble(), anyInt())).thenReturn(List.of());
+            when(movieRepository.findUnseen(any(), anyInt())).thenReturn(List.of());
 
             assertThat(movieService.findUnseenPool(Set.of(), 25)).isEmpty();
         }
