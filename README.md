@@ -78,8 +78,10 @@ Likes feed the *positive* clusters; dislikes feed a parallel set of *negative* c
 
 `SwipeService.getNextMovie` implements an [epsilon-greedy](https://en.wikipedia.org/wiki/Multi-armed_bandit) strategy:
 
-- **80% exploit** — pick a random positive cluster and return the nearest unseen movie via [`pgvector`](https://github.com/pgvector/pgvector) cosine search.
-- **20% explore** — return a random unseen movie. Of those, 15% specifically return the *least similar* movie to a random negative cluster, so the system keeps learning when the user has a narrow taste profile.
+- **70% exploit** — pick a random positive cluster, fetch the top-N nearest unseen candidates via [`pgvector`](https://github.com/pgvector/pgvector) cosine search, and choose the one with the best blended score of cosine similarity, log-normalised popularity, and a small noise term.
+- **30% explore** — sample an unseen pool, then drop any movie whose cosine similarity to a *negative* cluster centroid exceeds `0.5`, and pick from the remainder weighted by popularity. This keeps the feed broad while steering away from rejected content.
+
+A brand-new session (no positive clusters yet) always uses the explore path.
 
 ### 4. Ranked recommendations with explanations
 
